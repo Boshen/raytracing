@@ -117,22 +117,22 @@ var Canvas = /** @class */ (function () {
 var main = function () {
     var width = 500;
     var height = 500;
-    var eye = new Vector(0, 0, -150);
+    var lookat = new Vector(0, 0, -50);
+    var eye = new Vector(0, -100, 500);
+    var ww = eye.sub(lookat).unit();
+    var vv = new Vector(0, 1, 0);
+    var uu = vv.cross(ww).unit();
+    var viewDistance = 400;
     var lights = [
-        new Light(new Vector(0, 1000, 0), 1000),
-        new Light(new Vector(1000, 0, 0), 1000)
+        new Light(new Vector(1000, -5000, 0), 3),
     ];
     var background = new Vector(0, 0, 0);
-    // u-v-w coordinate from the eye
-    var u = new Vector(1, 0, 0);
-    var v = new Vector(0, 1, 0);
-    var w = new Vector(0, 0, 1);
-    var spheres = [
-        new Sphere(30, new Vector(0, 0, 0), new Vector(255, 0, 0)),
-        new Sphere(10, new Vector(0, 50, -10), new Vector(0, 255, 0)),
-        new Sphere(5, new Vector(60, 0, -10), new Vector(0, 0, 255))
-    ];
-    var canvas = new Canvas(width, height);
+    var spheres = [];
+    for (var i = -1; i < 2; i++) {
+        for (var j = -1; j < 2; j++) {
+            spheres.push(new Sphere(50, new Vector(150 * i, 50, 200 * j), new Vector(255, 0, 0)));
+        }
+    }
     function trace(ray, depth, object) {
         if (depth > 3) {
             return new Vector(0, 0, 0);
@@ -151,7 +151,7 @@ var main = function () {
             return null;
         }
         var point = ray.getPoint(minD);
-        return hit(ray, point, object, depth);
+        return object && hit(ray, point, object, depth);
     }
     function hit(ray, point, object, depth) {
         var normal = object.normal(point).unit();
@@ -187,14 +187,15 @@ var main = function () {
             .add(object.color.scale(Math.min(1, lambert) * object.lambert))
             .add(object.color.scale(object.ambient));
     }
+    var canvas = new Canvas(width, height);
     for (var i = 0; i < width; i++) {
         for (var j = 0; j < height; j++) {
             // transformed pixel position
-            var us = (i - width / 2) / width;
-            var vs = (height / 2 - j) / height;
+            var x = i - width / 2;
+            var y = j - height / 2;
             // eye -> line direction vector
-            var s = (u.scale(us)).add(v.scale(vs)).add(w).unit();
-            var ray = new Line(eye, s);
+            var d = uu.scale(x).add(vv.scale(y)).sub(ww.scale(viewDistance)).unit();
+            var ray = new Line(eye, d);
             var color = trace(ray, 0) || background;
             canvas.addPixel(i, j, color);
         }

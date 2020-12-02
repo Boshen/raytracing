@@ -63,7 +63,6 @@ class Vector {
 }
 
 class Line {
-
   constructor(
     public origin: Vector,
     public line: Vector
@@ -76,20 +75,16 @@ class Line {
   public toString() {
     return `origin: ${this.origin}, line: ${this.line}`
   }
-
 }
 
 class Light {
-
   constructor(
     public source: Vector,
     public illumination: number
   ) { }
-
 }
 
 class Sphere {
-
   constructor(
     public radius: number,
     public center: Vector,
@@ -123,7 +118,6 @@ class Sphere {
 }
 
 class Canvas {
-
   private canvas: HTMLCanvasElement
   private ctx: CanvasRenderingContext2D
   private imageData: number[] = []
@@ -157,26 +151,27 @@ const main = () => {
   const width = 500
   const height = 500
 
-  const eye = new Vector(0, 0, -150)
+  const lookat = new Vector(0, 0, -50)
+  const eye = new Vector(0, -100, 500)
+  const ww = eye.sub(lookat).unit()
+  const vv = new Vector(0, 1, 0)
+  const uu = vv.cross(ww).unit()
+  const viewDistance = 400
 
   const lights = [
-    new Light(new Vector(0, 1000, 0), 1000),
-    new Light(new Vector(1000, 0, 0), 1000)
+    new Light(new Vector(1000, -5000, 0), 3),
   ]
+
   const background = new Vector(0, 0, 0)
 
-  // u-v-w coordinate from the eye
-  const u = new Vector(1, 0, 0)
-  const v = new Vector(0, 1, 0)
-  const w = new Vector(0, 0, 1)
-
-  const spheres = [
-    new Sphere(30, new Vector(0, 0, 0), new Vector(255, 0, 0)),
-    new Sphere(10, new Vector(0, 50, -10), new Vector(0, 255, 0)),
-    new Sphere(5, new Vector(60, 0, -10), new Vector(0, 0, 255))
-  ]
-
-  const canvas = new Canvas(width, height)
+  const spheres = []
+  for (let i = -1; i < 2; i++) {
+    for (let j = -1; j < 2; j++) {
+      spheres.push(
+    new Sphere(50, new Vector(150 * i, 50, 200 * j), new Vector(255, 0, 0)),
+      )
+    }
+  }
 
   function trace(ray: Line, depth: number, object?: Sphere): Vector | null {
     if (depth > 3) {
@@ -199,7 +194,7 @@ const main = () => {
     }
 
     const point = ray.getPoint(minD)
-    return hit(ray, point, object!, depth)
+    return object && hit(ray, point, object, depth)
   }
 
   function hit(ray: Line, point: Vector, object: Sphere, depth: number): Vector {
@@ -239,15 +234,16 @@ const main = () => {
     .add(object.color.scale(object.ambient))
   }
 
+  const canvas = new Canvas(width, height)
 
   for (let i = 0; i < width; i++) {
     for (let j = 0; j < height; j++) {
       // transformed pixel position
-      const us = (i - width / 2) / width
-      const vs = (height / 2 - j) / height
+      const x = i - width / 2
+      const y = j - height / 2
       // eye -> line direction vector
-      const s = (u.scale(us)).add(v.scale(vs)).add(w).unit()
-      const ray = new Line(eye, s)
+      const d = uu.scale(x).add(vv.scale(y)).sub(ww.scale(viewDistance)).unit()
+      const ray = new Line(eye, d)
       const color = trace(ray, 0) || background
       canvas.addPixel(i, j, color)
     }

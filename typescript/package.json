@@ -4,6 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
+    "watch": "tsc --watch main.ts",
     "build": "tsc main.ts"
   },
   "devDependencies": {
