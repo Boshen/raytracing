@@ -4,11 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 943278f44bff133e02f1a6783df1679518a525f54e46b73d74f9db8e9fa318ab
+-- hash: ddce54fb60adb067b8540fc12aea0818e50e20ca6559a8aafa757f57b75caa86
 
 name:           raytracing
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/raytracing#readme>
 homepage:       https://github.com/githubuser/raytracing#readme
 bug-reports:    https://github.com/githubuser/raytracing/issues
 author:         Author name here
@@ -24,6 +23,10 @@ source-repository head
 library
   exposed-modules:
       Lib
+      Light
+      Object
+      Ray
+      Types
   other-modules:
       Paths_raytracing
   hs-source-dirs:
