@@ -6,10 +6,6 @@ author:              "Author name here"
 maintainer:          "example@example.com"
 copyright:           "2020 Author name here"
 
-extra-source-files:
-- README.md
-- ChangeLog.md
-
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
 # category:            Web
@@ -21,26 +17,25 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
+- lens
+- linear
+- repa
+- JuicyPixels
 
 library:
   source-dirs: src
+  ghc-options:
+  - -Wall
+  - -Wno-unused-top-binds
+  - -O2
 
 executables:
   raytracing-exe:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - raytracing
-
-tests:
-  raytracing-test:
-    main:                Spec.hs
-    source-dirs:         test
-    ghc-options:
+    - -Wall
+    - -O2
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N

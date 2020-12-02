@@ -3,7 +3,14 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: repa-3.4.1.4@sha256:fab455d72a702f2d8a0c9be2de1d45ea1beb8f5949d8173bb95d2e7c515a6225,3323
+    pantry-tree:
+      size: 2965
+      sha256: 9df7e22a32219da108ee67a24a9a223973357ce40d2d920d3df994c46e98f77e
+  original:
+    hackage: repa-3.4.1.4
 snapshots:
 - completed:
     size: 532835

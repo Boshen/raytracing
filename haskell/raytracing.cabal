@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 812aea0d656ce6ae9f647345a7d17b50140a4d794248ff0b858e2d0e02c7df37
+-- hash: 943278f44bff133e02f1a6783df1679518a525f54e46b73d74f9db8e9fa318ab
 
 name:           raytracing
 version:        0.1.0.0
@@ -15,11 +15,7 @@ author:         Author name here
 maintainer:     example@example.com
 copyright:      2020 Author name here
 license:        BSD3
-license-file:   LICENSE
 build-type:     Simple
-extra-source-files:
-    README.md
-    ChangeLog.md
 
 source-repository head
   type: git
@@ -32,8 +28,13 @@ library
       Paths_raytracing
   hs-source-dirs:
       src
+  ghc-options: -Wall -Wno-unused-top-binds -O2
   build-depends:
-      base >=4.7 && <5
+      JuicyPixels
+    , base >=4.7 && <5
+    , lens
+    , linear
+    , repa
   default-language: Haskell2010
 
 executable raytracing-exe
@@ -42,21 +43,12 @@ executable raytracing-exe
       Paths_raytracing
   hs-source-dirs:
       app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      JuicyPixels
+    , base >=4.7 && <5
+    , lens
+    , linear
     , raytracing
-  default-language: Haskell2010
-
-test-suite raytracing-test
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  other-modules:
-      Paths_raytracing
-  hs-source-dirs:
-      test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      base >=4.7 && <5
-    , raytracing
+    , repa
   default-language: Haskell2010
