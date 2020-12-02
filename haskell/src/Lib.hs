@@ -3,21 +3,21 @@
 
 module Lib where
 
-import Control.Lens
-import Control.Applicative
-import Data.Foldable
-import Data.Maybe
-import Data.Ord
-import Linear.Metric
-import Linear.V3
-import Linear.Vector
-import Data.Array.Repa (Array, DIM2, D, Z (..), (:.)(..))
-import qualified Data.Array.Repa as R
+import           Control.Applicative
+import           Control.Lens
+import           Data.Array.Repa     ((:.) (..), Array, D, DIM2, Z (..))
+import qualified Data.Array.Repa     as R
+import           Data.Foldable
+import           Data.Maybe
+import           Data.Ord
+import           Linear.Metric
+import           Linear.V3
+import           Linear.Vector
 
-import Types
-import Object
-import Ray
-import Light
+import           Light
+import           Object
+import           Ray
+import           Types
 
 eye, lookat, uu, vv, ww :: Vector
 eye = V3 0 (-100) 500
@@ -30,10 +30,10 @@ viewDistance :: Double
 viewDistance = 400
 
 data Scene = Scene
-    { _width :: Int
-    , _height :: Int
+    { _width   :: Int
+    , _height  :: Int
     , _objects :: [Object]
-    , _lights :: [Light]
+    , _lights  :: [Light]
     }
 makeLenses ''Scene
 
@@ -73,7 +73,7 @@ calcReflection scene object ray rayHit depth color
     | reflect == 0 = color
     | otherwise =  reflect *^ reflectColor + color
     where
-        reflect = object^.material^.reflection
+        reflect = object ^. (material . reflection)
         reflectDir = 2 * ((ray^.rayDirection) `dot` (rayHit^.hitNormal))
         reflectRay = Ray (rayHit^.hitPoint) ((ray^.rayDirection) - (reflectDir *^ (rayHit^.hitNormal)))
         reflectColor = trace scene reflectRay (depth + 1) color
@@ -84,7 +84,7 @@ calcShade scene object (RayHit (Ray s _) p n _) light = case light of
         (k_d *^ c_d) * (l_s *^ c_l)
 
     DirectionalLight l_s c_l l ->
-        (k_d *^ c_d ^/ 3.14) ^* (max 0 $ n `dot` l) * (l_s *^ c_l)
+        (k_d *^ c_d ^/ 3.14) ^* max 0 (n `dot` l) * (l_s *^ c_l)
 
     PointLight l_s c_l lightPos -> if inShadow then V3 0 0 0 else diffuse + specular
         where
@@ -94,22 +94,22 @@ calcShade scene object (RayHit (Ray s _) p n _) light = case light of
             -- when the object is blocked by another object
             shadowRay = Ray (p + 0.001 *^ l) l
             os = filter (/= object) (scene^.objects)
-            inShadow = (n `dot` w > 0) && (any isJust $ intersects shadowRay <$> os)
+            inShadow = (n `dot` w > 0) && any isJust (intersects shadowRay <$> os)
 
             -- Lambertian shading model
             diffuseAmount = max 0 $ n `dot` l
             diffuse = (k_d *^ c_d ^/ 3.14) ^* diffuseAmount * (l_s *^ c_l)
 
             -- Phong shading model
-            k_s = object^.material^.specularRefection
-            e = object^.material^.shininess
+            k_s = object ^. (material . specularRefection)
+            e = object ^. (material . shininess)
             r = 2 * diffuseAmount *^ n - l -- reflection direction
             specularAmount = r `dot` w
             specular = k_s * (specularAmount ** e) * diffuseAmount *^ (l_s *^ c_l)
 
     where
-        k_d = object^.material^.diffuseReflection
-        c_d = object^.material^.diffuseColor
+        k_d = object ^. (material.diffuseReflection)
+        c_d = object ^. (material.diffuseColor)
 
 minIntersect :: Intersectable a => Ray -> [a] -> Maybe (a, RayHit)
 minIntersect ray os

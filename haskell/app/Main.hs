@@ -1,13 +1,13 @@
 module Main where
 
-import Codec.Picture
-import Data.Array.Repa hiding ((++))
-import Linear.V3
+import           Codec.Picture
+import           Data.Array.Repa hiding ((++))
+import           Linear.V3
 
-import Lib
-import Object
-import Types
-import Light
+import           Lib
+import           Light
+import           Object
+import           Types
 
 toImage :: Int -> Int -> Array U DIM2 RGB8 -> Image PixelRGB8
 toImage w h a = generateImage gen w h
@@ -20,7 +20,7 @@ main :: IO ()
 main = do
     (w, h) <- return (500, 500)
     img <- computeUnboxedP $ getImage (Scene w h os ls)
-    savePngImage "test.png" . ImageRGB8 . (toImage w h) $ img
+    savePngImage "test.png" . ImageRGB8 . toImage w h $ img
 
     where
         spheres = do
