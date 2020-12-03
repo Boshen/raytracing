@@ -93,11 +93,30 @@ class Light {
   ) { }
 }
 
+class RayHit {
+  constructor(
+    public hitRay: Line,
+    public hitPoint: Vector,
+    public hitNormmal: Vector,
+    public hitDistance: number
+  ) { }
+}
+
+const solveq = (a, b, c) => {
+  const d = b * b - 4 * a * c
+  if (d < 0) {
+    return []
+  } else if (d > 0) {
+    return [(-b - Math.sqrt(d)) / (2 * a), (-b + Math.sqrt(d)) / (2 * a)]
+  } else {
+    return [-b / (2 * a)]
+  }
+}
+
 class Sphere {
   constructor(
     public radius: number,
     public center: Vector,
-    public color: Vector,
     public diffuseReflection: number ,
     public diffuseColor: Vector,
     public reflection: number,
@@ -109,21 +128,17 @@ class Sphere {
     return p.sub(this.center)
   }
 
-  public intersection(ray: Line): number {
-    // (-b +- sqrt(b^2 - a*c)) / a
-    const originToCenter = ray.origin.sub(this.center)
-    // const a = ray.line.dot(ray.line) === 1
-    const b = ray.line.dot(originToCenter)
-    const c = originToCenter.dot(originToCenter)
-    const d = Math.pow(b, 2) - c + Math.pow(this.radius, 2) // discriminant
-
-    if (d <= 0) {
-      return Infinity
+  public intersects(ray: Line) {
+    const d = ray.origin.sub(this.center)
+    const roots = solveq(ray.line.dot(ray.line), 2 * ray.line.dot(d), d.dot(d) - this.radius * this.radius)
+    .filter((x) => x > Math.pow(10, -6))
+    if (roots.length === 0) {
+      return null
     } else {
-      const sqrtD = Math.sqrt(d)
-      const root1 = -b + sqrtD
-      const root2 = -b - sqrtD
-      return Math.min.apply(null, [root1, root2].filter((x) => x >= 0))
+      const hitDistance = Math.min(...roots)
+      const hitPoint = ray.origin.add(ray.line.scale(hitDistance))
+      const hitNormal = hitPoint.sub(this.center).unit()
+      return new RayHit(ray, hitPoint, hitNormal, hitDistance)
     }
   }
 }
@@ -175,14 +190,13 @@ const main = () => {
 
   const background = new Vector(0, 0, 0)
 
-  const spheres = []
+  const spheres: Sphere[] = []
   for (let i = -1; i < 2; i++) {
     for (let j = -1; j < 2; j++) {
       spheres.push(
         new Sphere(
           50,
           new Vector(150 * i, 50, 200 * j),
-          new Vector(255, 0, 0),
           0.8,
           new Vector(Math.max(0, i), Math.max(0, j), Math.max(0, i * j)),
           0.2,
@@ -198,42 +212,59 @@ const main = () => {
       return new Vector(0, 0, 0)
     }
 
-    // trace ray from eye to objects
-    let minD = Infinity
-    spheres.forEach((sphere) => {
-      const d = sphere.intersection(ray)
-      if (d < minD) {
-        minD = d
-        object = sphere
+    const hits = spheres.map((object) => {
+      const hitRay = object.intersects(ray)
+      return hitRay && { hitRay, object}
+    })
+      .filter(Boolean)
+
+    if (hits.length === 0) {
+      return null
+    }
+
+    let hit = hits[0]
+    hits.slice(1).forEach((h) => {
+      if (h.hitRay.hitDistance < hit.hitRay.hitDistance) {
+        hit = h
       }
     })
 
-    // no object has been found
-    if (minD === Infinity) {
-      return null
-    }
-
-    if (!object) {
-      return null
-    }
-    const point = ray.getPoint(minD)
-    return lights.map((l) => calcShade(ray, point, object, l)).reduce((a, b) => a.add(b))
+    return lights
+      .map((l) => calcShade(hit.object, hit.hitRay, l))
+      .reduce((a, b) => a.add(b), new Vector(0, 0, 0))
   }
 
-  function calcShade(ray: Line, point: Vector, object: Sphere, light: Light): Vector {
-    const hitNormal = object.normal(point).unit()
-    const viewDirection = ray.origin.sub(point).unit()
-    const shadowDirection = light.lightLocation.sub(point).unit()
-    const shadowRay = new Line(point.add(shadowDirection.scale(0.001)), shadowDirection)
+  function calcShade(object: Sphere, hitRay: RayHit, light: Light): Vector {
+    const s = hitRay.hitRay.origin
+    const p = hitRay.hitPoint
+    const n = hitRay.hitNormmal
+    const l = light.lightLocation.sub(p).unit()
+    const w = s.sub(p).unit()
 
-    const inShadow = hitNormal.dot(viewDirection) > 0 && spheres.some((s) => s.intersection(shadowRay) < Infinity)
+    const shadowRay = new Line(p.add(l.scale(0.001)), l)
+    const inShadow = n.dot(w) > 0 &&
+      spheres.filter((s) => s != object).some((s) => !!s.intersects(shadowRay))
+
     if (inShadow) {
       return new Vector(0, 0, 0)
     }
 
-    const diffuseAmount = Math.max(0, hitNormal.dot(shadowDirection))
-    const diffuse = object.diffuseColor.scale(object.diffuseReflection).scale(1 / 3.14).scale(diffuseAmount).mul(light.lightColor.scale(light.radiance))
-    return diffuse
+    const kd = object.diffuseReflection
+    const cd = object.diffuseColor
+    const cl = light.lightColor
+    const ls = light.radiance
+
+    const diffuseAmount = Math.max(0, n.dot(l))
+    const diffuse = cd.scale(kd).scale(1 / 3.14)
+      .scale(diffuseAmount).mul(cl.scale(ls))
+
+    const ks = object.specularRefection
+    const e = object.shininess
+    const r = n.scale(2 * diffuseAmount).sub(l)
+    const specularAmount = r.dot(w)
+    const specular = cl.scale(ks * Math.pow(specularAmount, e) * diffuseAmount * ls)
+
+    return diffuse.add(specular)
   }
 
   const canvas = new Canvas(width, height)
@@ -247,7 +278,7 @@ const main = () => {
       const d = uu.scale(x).add(vv.scale(y)).sub(ww.scale(viewDistance)).unit()
       const ray = new Line(eye, d)
       const color = trace(ray, 0) || background
-      const toRGB = (n: number) => Math.min(255, Math.round(n * 255))
+      const toRGB = (n: number) => Math.max(0, Math.round(Math.min(255, n * 255)))
       canvas.addPixel(i, j, new Vector(toRGB(color.x), toRGB(color.y), toRGB(color.z)))
     }
   }

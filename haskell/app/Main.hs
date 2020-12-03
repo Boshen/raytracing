@@ -26,7 +26,7 @@ main = do
         spheres = do
             i <- [-1..1]
             j <- [-1..1]
-            return $ Sphere (V3 (150 * i) 50 (200 * j)) 50 (Material 0.8 (V3 (max 0 i) (max 0 j) (max 0 (i*j))) 0.2 0.2 20)
+            return $ Sphere (V3 (150 * i) 50 (200 * j)) 50 (Material 0.8 (V3 (max 0 i) (max 0 j) (max 0 (i *j))) 0.2 0.4 20)
 
         os = spheres ++
             [

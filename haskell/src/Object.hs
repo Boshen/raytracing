@@ -11,13 +11,9 @@ import           Types
 
 data Material = Material
     { _diffuseReflection :: Double -- k_d in [0, 1], == ka, ambient reflection coefficient
-    -- c_d; rho_d = k_d * c_d
     , _diffuseColor      :: Color -- c_d; rho_d = k_d * c_d
-    -- [0, 1]
     , _reflection        :: Double -- [0, 1]
-    -- k_s [0, 1]
     , _specularRefection :: Double -- k_s [0, 1]
-    -- [0, inf)
     , _shininess         :: Double -- [0, inf)
     }
     deriving (Eq)
