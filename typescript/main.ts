@@ -89,8 +89,30 @@ class Light {
   constructor(
     public radiance: number,
     public lightColor: Vector,
-    public lightLocation: Vector,
   ) { }
+}
+
+class AmbientLight extends Light {
+}
+
+class DirectionalLight extends Light {
+  constructor(
+    public radiance: number,
+    public lightColor: Vector,
+    public lightLocation: Vector,
+  ) {
+    super(radiance, lightColor)
+  }
+}
+
+class PointLight extends Light {
+  constructor(
+    public radiance: number,
+    public lightColor: Vector,
+    public lightLocation: Vector,
+  ) {
+    super(radiance, lightColor)
+  }
 }
 
 class RayHit {
@@ -185,7 +207,9 @@ const main = () => {
   const viewDistance = 400
 
   const lights = [
-    new Light(3, new Vector(1, 1, 1), new Vector(1000, -5000, 0)),
+    new AmbientLight(0.1, new Vector(0.05, 0.05, 0.05)),
+    new DirectionalLight(1, new Vector(1, 1, 1), new Vector(1, -1, 0)),
+    new PointLight(3, new Vector(1, 1, 1), new Vector(1000, -5000, 0)),
   ]
 
   const background = new Vector(0, 0, 0)
@@ -235,36 +259,46 @@ const main = () => {
   }
 
   function calcShade(object: Sphere, hitRay: RayHit, light: Light): Vector {
-    const s = hitRay.hitRay.origin
-    const p = hitRay.hitPoint
-    const n = hitRay.hitNormmal
-    const l = light.lightLocation.sub(p).unit()
-    const w = s.sub(p).unit()
-
-    const shadowRay = new Line(p.add(l.scale(0.001)), l)
-    const inShadow = n.dot(w) > 0 &&
-      spheres.filter((s) => s != object).some((s) => !!s.intersects(shadowRay))
-
-    if (inShadow) {
-      return new Vector(0, 0, 0)
-    }
-
     const kd = object.diffuseReflection
     const cd = object.diffuseColor
+    const n = hitRay.hitNormmal
     const cl = light.lightColor
     const ls = light.radiance
+    const s = hitRay.hitRay.origin
+    const p = hitRay.hitPoint
 
-    const diffuseAmount = Math.max(0, n.dot(l))
-    const diffuse = cd.scale(kd).scale(1 / 3.14)
+    if (light instanceof AmbientLight) {
+      return cd.scale(kd).mul(light.lightColor.scale(light.radiance))
+    }
+
+    if (light instanceof DirectionalLight) {
+      const l = light.lightLocation.sub(p).unit()
+      return cd.scale(kd).scale(1 / 3.14).scale(Math.max(0, n.dot(l))).mul(cl.scale(ls))
+    }
+
+    if (light instanceof PointLight) {
+      const w = s.sub(p).unit()
+      const l = light.lightLocation.sub(p).unit()
+
+      const shadowRay = new Line(p.add(l.scale(0.001)), l)
+      const inShadow = n.dot(w) > 0 &&
+        spheres.filter((s) => s != object).some((s) => !!s.intersects(shadowRay))
+
+      if (inShadow) {
+        return new Vector(0, 0, 0)
+      }
+
+      const diffuseAmount = Math.max(0, n.dot(l))
+      const diffuse = cd.scale(kd).scale(1 / 3.14)
       .scale(diffuseAmount).mul(cl.scale(ls))
 
-    const ks = object.specularRefection
-    const e = object.shininess
-    const r = n.scale(2 * diffuseAmount).sub(l)
-    const specularAmount = r.dot(w)
-    const specular = cl.scale(ks * Math.pow(specularAmount, e) * diffuseAmount * ls)
-
-    return diffuse.add(specular)
+      const ks = object.specularRefection
+      const e = object.shininess
+      const r = n.scale(2 * diffuseAmount).sub(l)
+      const specularAmount = r.dot(w)
+      const specular = cl.scale(ks * Math.pow(specularAmount, e) * diffuseAmount * ls)
+      return diffuse.add(specular)
+    }
   }
 
   const canvas = new Canvas(width, height)
