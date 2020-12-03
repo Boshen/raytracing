@@ -45,6 +45,14 @@ class Vector {
     )
   }
 
+  public mul(p: Vector): Vector {
+    return new Vector(
+      p.x * this.x,
+      p.y * this.y,
+      p.z * this.z
+    )
+  }
+
   public cross(v: Vector): Vector {
     return new Vector(
       (this.y * v.z) - (this.z * v.y),
@@ -79,8 +87,9 @@ class Line {
 
 class Light {
   constructor(
-    public source: Vector,
-    public illumination: number
+    public radiance: number,
+    public lightColor: Vector,
+    public lightLocation: Vector,
   ) { }
 }
 
@@ -89,9 +98,11 @@ class Sphere {
     public radius: number,
     public center: Vector,
     public color: Vector,
-    public lambert: number = 0.7,
-    public ambient: number = 0.1,
-    public specular: number = 0.2
+    public diffuseReflection: number ,
+    public diffuseColor: Vector,
+    public reflection: number,
+    public specularRefection: number,
+    public shininess: number
   ) { }
 
   public normal(p: Vector): Vector {
@@ -159,7 +170,7 @@ const main = () => {
   const viewDistance = 400
 
   const lights = [
-    new Light(new Vector(1000, -5000, 0), 3),
+    new Light(3, new Vector(1, 1, 1), new Vector(1000, -5000, 0)),
   ]
 
   const background = new Vector(0, 0, 0)
@@ -168,7 +179,16 @@ const main = () => {
   for (let i = -1; i < 2; i++) {
     for (let j = -1; j < 2; j++) {
       spheres.push(
-    new Sphere(50, new Vector(150 * i, 50, 200 * j), new Vector(255, 0, 0)),
+        new Sphere(
+          50,
+          new Vector(150 * i, 50, 200 * j),
+          new Vector(255, 0, 0),
+          0.8,
+          new Vector(Math.max(0, i), Math.max(0, j), Math.max(0, i * j)),
+          0.2,
+          0.2,
+          20
+        ),
       )
     }
   }
@@ -193,45 +213,27 @@ const main = () => {
       return null
     }
 
+    if (!object) {
+      return null
+    }
     const point = ray.getPoint(minD)
-    return object && hit(ray, point, object, depth)
+    return lights.map((l) => calcShade(ray, point, object, l)).reduce((a, b) => a.add(b))
   }
 
-  function hit(ray: Line, point: Vector, object: Sphere, depth: number): Vector {
-    const normal = object.normal(point).unit()
+  function calcShade(ray: Line, point: Vector, object: Sphere, light: Light): Vector {
+    const hitNormal = object.normal(point).unit()
+    const viewDirection = ray.origin.sub(point).unit()
+    const shadowDirection = light.lightLocation.sub(point).unit()
+    const shadowRay = new Line(point.add(shadowDirection.scale(0.001)), shadowDirection)
 
-    let lambert = 0
-    for (let light of lights) {
-      // compute shadow
-      // trace ray from intersection point to light source
-      // add an offset so shadow ray will not intersect with the origin object itself
-      let minD = Infinity
-      const shadowDirection = light.source.sub(point).unit()
-      const shadowRay = new Line(point.add(shadowDirection.scale(0.001)), shadowDirection)
-      for (let sphere of spheres) {
-        const d = sphere.intersection(shadowRay)
-        if (d < minD) {
-          minD = d
-          break
-        }
-      }
-      if (minD !== Infinity) {
-        continue
-      }
-
-      // compute lambertian shading
-      const l = light.source.sub(point).unit()
-      lambert += Math.max(0, normal.dot(l))
+    const inShadow = hitNormal.dot(viewDirection) > 0 && spheres.some((s) => s.intersection(shadowRay) < Infinity)
+    if (inShadow) {
+      return new Vector(0, 0, 0)
     }
 
-    // compute specular shading
-    const r = ray.line.sub(normal.scale(2).scale(normal.dot(ray.line)))
-    const color = trace(new Line(point.add(r.scale(0.001)), r), depth + 1)
-    const c = color ? color.scale(object.specular) : new Vector(0, 0, 0)
-
-    return c
-    .add(object.color.scale(Math.min(1, lambert) * object.lambert))
-    .add(object.color.scale(object.ambient))
+    const diffuseAmount = Math.max(0, hitNormal.dot(shadowDirection))
+    const diffuse = object.diffuseColor.scale(object.diffuseReflection).scale(1 / 3.14).scale(diffuseAmount).mul(light.lightColor.scale(light.radiance))
+    return diffuse
   }
 
   const canvas = new Canvas(width, height)
@@ -245,7 +247,8 @@ const main = () => {
       const d = uu.scale(x).add(vv.scale(y)).sub(ww.scale(viewDistance)).unit()
       const ray = new Line(eye, d)
       const color = trace(ray, 0) || background
-      canvas.addPixel(i, j, color)
+      const toRGB = (n: number) => Math.min(255, Math.round(n * 255))
+      canvas.addPixel(i, j, new Vector(toRGB(color.x), toRGB(color.y), toRGB(color.z)))
     }
   }
 
