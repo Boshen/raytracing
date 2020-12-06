@@ -105,16 +105,29 @@ const solveq = (a: number, b: number, c: number): number[] => {
   }
 }
 
-class Sphere {
+interface Material {
+  diffuseReflection: number
+  diffuseColor: V3
+  reflection: number
+  specularRefection: number
+  shininess: number
+}
+
+abstract class Item {
+  constructor(
+    public material: Material
+  ) {}
+  abstract intersects(ray: Line): RayHit | null
+}
+
+class Sphere extends Item {
   constructor(
     public radius: number,
     public center: V3,
-    public diffuseReflection: number ,
-    public diffuseColor: V3,
-    public reflection: number,
-    public specularRefection: number,
-    public shininess: number
-  ) { }
+    public material: Material
+  ) {
+    super(material)
+  }
 
   public normal(p: V3): V3 {
     return p.sub(this.center)
@@ -136,6 +149,30 @@ class Sphere {
         normal,
         distance
       } as RayHit
+    }
+  }
+}
+
+class Plane extends Item {
+  constructor(
+    public position: V3,
+    public planeNormal: V3,
+    public material: Material
+  ) {
+    super(material)
+  }
+
+  intersects(ray: Line) {
+    const distance = this.position.sub(ray.origin).dot(this.planeNormal) / ray.line.dot(this.planeNormal)
+    if (distance <= 0) {
+      return null
+    } else {
+      return {
+        ray,
+        point: ray.origin.add(ray.line.scale(distance)),
+        normal: this.planeNormal,
+        distance
+      }
     }
   }
 }
@@ -183,37 +220,54 @@ const main = () => {
 
   const lights: Light[] = [
     {type:'ambient', radiance: 0.1, color: new V3(0.05, 0.05, 0.05)},
-    {type:'directional', radiance: 1, color: new V3(1, 1, 01), location: new V3(1, -1, 0)},
+    {type:'directional', radiance: 1, color: new V3(1, 1, 1), location: new V3(1, -1, 0)},
     {type:'point', radiance: 3, color: new V3(1, 1, 1), location: new V3(1000, -5000, 0)},
   ]
 
   const background = new V3(0, 0, 0)
 
-  const spheres: Sphere[] = []
+  const items: Item[] = []
   for (let i = -1; i < 2; i++) {
     for (let j = -1; j < 2; j++) {
-      spheres.push(
+      const material = {
+        diffuseReflection: 0.8,
+        diffuseColor: new V3(Math.max(0, i), Math.max(0, j), Math.max(0, i * j)),
+        reflection: 0.2,
+        specularRefection: 0.2,
+        shininess: 20
+      }
+      items.push(
         new Sphere(
           50,
           new V3(150 * i, 50, 200 * j),
-          0.8,
-          new V3(Math.max(0, i), Math.max(0, j), Math.max(0, i * j)),
-          0.2,
-          0.2,
-          20
+          material
         ),
       )
     }
   }
 
-  function trace(ray: Line, depth: number, object?: Sphere): V3 | null {
+  items.push(
+    new Plane(
+      new V3(0, 100, 0),
+      new V3(0, -1, 0),
+      {
+        diffuseReflection: 0.5,
+        diffuseColor: new V3(0.5, 0.5, 0.5),
+        reflection: 0.5,
+        specularRefection: 0,
+        shininess: 0
+      }
+    )
+  )
+
+  function trace(ray: Line, depth: number): V3 | null {
     if (depth > 3) {
       return new V3(0, 0, 0)
     }
 
-    const hits = spheres.map((object) => {
-      const hitRay = object.intersects(ray)
-      return hitRay && { hitRay, object}
+    const hits = items.map((item) => {
+      const hitRay = item.intersects(ray)
+      return hitRay && { hitRay, item}
     })
       .filter(Boolean)
 
@@ -229,13 +283,15 @@ const main = () => {
     })
 
     return lights
-      .map((l) => calcShade(hit.object, hit.hitRay, l))
+      .map((l) => calcShade(hit.item, hit.hitRay, l))
       .reduce((a, b) => a.add(b), new V3(0, 0, 0))
   }
 
-  function calcShade(object: Sphere, hitRay: RayHit, light: Light): V3 {
-    const kd = object.diffuseReflection
-    const cd = object.diffuseColor
+  function calcShade(item: Item, hitRay: RayHit, light: Light): V3 {
+    const kd = item.material.diffuseReflection
+    const cd = item.material.diffuseColor
+    const ks = item.material.specularRefection
+    const e = item.material.shininess
     const n = hitRay.normal
     const cl = light.color
     const ls = light.radiance
@@ -256,7 +312,7 @@ const main = () => {
 
         const shadowRay = new Line(p.add(l.scale(0.001)), l)
         const inShadow = n.dot(w) > 0 &&
-          spheres.filter((s) => s != object).some((s) => !!s.intersects(shadowRay))
+          items.filter((s) => s != item).some((s) => !!s.intersects(shadowRay))
 
         if (inShadow) {
           return new V3(0, 0, 0)
@@ -266,8 +322,6 @@ const main = () => {
         const diffuse = cd.scale(kd).scale(1 / 3.14)
         .scale(diffuseAmount).mul(cl.scale(ls))
 
-        const ks = object.specularRefection
-        const e = object.shininess
         const r = n.scale(2 * diffuseAmount).sub(l)
         const specularAmount = r.dot(w)
         const specular = cl.scale(ks * Math.pow(specularAmount, e) * diffuseAmount * ls)
