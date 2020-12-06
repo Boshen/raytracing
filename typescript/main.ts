@@ -48,14 +48,14 @@ class V3 {
 
 type Color = V3
 
-class Line {
+class Ray {
   constructor(
-    public origin: V3,
-    public line: V3
+    public start: V3,
+    public direction: V3
   ) { }
 
   getPoint(distance: number): V3 {
-    return this.origin.add(this.line.scale(distance))
+    return this.start.add(this.direction.scale(distance))
   }
 }
 
@@ -82,7 +82,7 @@ interface PointLight {
 type Light = AmbientLight | DirectionalLight | PointLight
 
 interface RayHit {
-  ray: Line
+  ray: Ray
   point: V3
   normal: V3
   distance: number
@@ -106,7 +106,7 @@ abstract class Item {
   constructor(
     public material: Material
   ) {}
-  abstract intersects(ray: Line): RayHit | null
+  abstract intersects(ray: Ray): RayHit | null
 
   solveq(a: number, b: number, c: number): number[] {
     const d = b * b - 4 * a * c
@@ -133,9 +133,9 @@ class Sphere extends Item {
     return p.sub(this.center)
   }
 
-  public intersects(ray: Line) {
-    const d = ray.origin.sub(this.center)
-    const roots = this.solveq(ray.line.dot(ray.line), 2 * ray.line.dot(d), d.dot(d) - this.radius * this.radius)
+  public intersects(ray: Ray) {
+    const d = ray.start.sub(this.center)
+    const roots = this.solveq(ray.direction.dot(ray.direction), 2 * ray.direction.dot(d), d.dot(d) - this.radius * this.radius)
     .filter((x) => x > Math.pow(10, -6))
     if (roots.length === 0) {
       return null
@@ -162,8 +162,8 @@ class Plane extends Item {
     super(material)
   }
 
-  intersects(ray: Line) {
-    const distance = this.position.sub(ray.origin).dot(this.planeNormal) / ray.line.dot(this.planeNormal)
+  intersects(ray: Ray) {
+    const distance = this.position.sub(ray.start).dot(this.planeNormal) / ray.direction.dot(this.planeNormal)
     return distance <= 0 ? null : {
       ray,
       point: ray.getPoint(distance),
@@ -216,7 +216,7 @@ const calcShade = (scene: Scene, item: Item, hitRay: RayHit, light: Light): Colo
   const n = hitRay.normal
   const cl = light.color
   const ls = light.radiance
-  const s = hitRay.ray.origin
+  const s = hitRay.ray.start
   const p = hitRay.point
 
   switch (light.type) {
@@ -231,7 +231,7 @@ const calcShade = (scene: Scene, item: Item, hitRay: RayHit, light: Light): Colo
       const w = s.sub(p).unit()
       const l = light.location.sub(p).unit()
 
-      const shadowRay = new Line(p.add(l.scale(0.001)), l)
+      const shadowRay = new Ray(p.add(l.scale(0.001)), l)
       const inShadow = n.dot(w) > 0 &&
         scene.items.filter((s) => s != item).some((s) => !!s.intersects(shadowRay))
 
@@ -251,7 +251,7 @@ const calcShade = (scene: Scene, item: Item, hitRay: RayHit, light: Light): Colo
   }
 }
 
-const calcReflection = (scene: Scene, item: Item, ray: Line, rayHit: RayHit, depth: number, color: Color) => {
+const calcReflection = (scene: Scene, item: Item, ray: Ray, rayHit: RayHit, depth: number, color: Color) => {
   if (depth > 3) {
     return color
   }
@@ -259,16 +259,16 @@ const calcReflection = (scene: Scene, item: Item, ray: Line, rayHit: RayHit, dep
   if (reflection === 0) {
     return color
   }
-  const reflectDir = 2 * ray.line.dot(rayHit.normal)
-  const reflectRay = new Line(
+  const reflectDir = 2 * ray.direction.dot(rayHit.normal)
+  const reflectRay = new Ray(
     rayHit.point,
-    ray.line.sub(rayHit.normal.scale(reflectDir))
+    ray.direction.sub(rayHit.normal.scale(reflectDir))
   )
   const reflectionColor = trace(scene, reflectRay, depth + 1, color)
   return reflectionColor.scale(reflection).add(color)
 }
 
-const trace = (scene: Scene, ray: Line, depth: number, color: Color): Color => {
+const trace = (scene: Scene, ray: Ray, depth: number, color: Color): Color => {
   const hits = scene.items.map((item) => {
     const hitRay = item.intersects(ray)
     return hitRay && { hitRay, item}
@@ -374,7 +374,7 @@ const main = (width: number, height: number, { useSamples = true }: { useSamples
         const dx = (i + 0.5) / samplePoints
         const dy = (j + 0.5) / samplePoints
         const d = uu.scale(x + dx).add(vv.scale(y + dy)).sub(ww.scale(viewDistance)).unit()
-        const ray = new Line(eye, d)
+        const ray = new Ray(eye, d)
         color = color.add(trace(scene, ray, 0, scene.background))
       }
     }
