@@ -203,7 +203,7 @@ class Canvas {
   }
 }
 
-const calcShade = (item: Item, hitRay: RayHit, light: Light, scene: Scene): Color => {
+const calcShade = (scene: Scene, item: Item, hitRay: RayHit, light: Light): Color => {
   const kd = item.material.diffuseReflection
   const cd = item.material.diffuseColor
   const ks = item.material.specularRefection
@@ -246,11 +246,24 @@ const calcShade = (item: Item, hitRay: RayHit, light: Light, scene: Scene): Colo
   }
 }
 
-const trace = (ray: Line, scene: Scene, depth: number = 0): Color | null => {
+const calcReflection = (scene: Scene, item: Item, ray: Line, rayHit: RayHit, depth: number, color: Color) => {
   if (depth > 3) {
-    return new V3(0, 0, 0)
+    return color
   }
+  const reflection = item.material.reflection
+  if (reflection === 0) {
+    return color
+  }
+  const reflectDir = 2 * ray.line.dot(rayHit.normal)
+  const reflectRay = new Line(
+    rayHit.point,
+    ray.line.sub(rayHit.normal.scale(reflectDir))
+  )
+  const reflectionColor = trace(scene, reflectRay, depth + 1, color)
+  return reflectionColor.scale(reflection).add(color)
+}
 
+const trace = (scene: Scene, ray: Line, depth: number, color: Color): Color => {
   const hits = scene.items.map((item) => {
     const hitRay = item.intersects(ray)
     return hitRay && { hitRay, item}
@@ -258,7 +271,7 @@ const trace = (ray: Line, scene: Scene, depth: number = 0): Color | null => {
   .filter(Boolean)
 
   if (hits.length === 0) {
-    return null
+    return new V3(0, 0, 0)
   }
 
   let hit = hits[0]
@@ -268,9 +281,13 @@ const trace = (ray: Line, scene: Scene, depth: number = 0): Color | null => {
     }
   })
 
-  return scene.lights
-  .map((l) => calcShade(hit.item, hit.hitRay, l, scene))
+  const shadeColor = scene.lights
+  .map((l) => calcShade(scene, hit.item, hit.hitRay, l))
   .reduce((a, b) => a.add(b), new V3(0, 0, 0))
+
+  const reflectionColor = calcReflection(scene, hit.item, ray, hit.hitRay, depth, color)
+
+  return shadeColor.add(reflectionColor)
 }
 
 const main = () => {
@@ -340,7 +357,7 @@ const main = () => {
       // eye -> line direction vector
       const d = uu.scale(x).add(vv.scale(y)).sub(ww.scale(viewDistance)).unit()
       const ray = new Line(eye, d)
-      const color = trace(ray, scene) || scene.background
+      const color = trace(scene, ray, 0, scene.background)
       const toRGB = (n: number) => Math.max(0, Math.round(Math.min(255, n * 255)))
       canvas.addPixel(i, j, new V3(toRGB(color.x), toRGB(color.y), toRGB(color.z)))
     }
