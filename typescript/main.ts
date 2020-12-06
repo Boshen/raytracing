@@ -5,35 +5,35 @@ class V3 {
     public z: number
   ) { }
 
-  public length(): number {
+  length(): number {
     return Math.sqrt(this.dot(this))
   }
 
-  public dot(v: V3) {
+  dot(v: V3) {
     return this.x * v.x + this.y * v.y + this.z * v.z
   }
 
-  public add(v: V3): V3 {
+  add(v: V3): V3 {
     return new V3(this.x + v.x, this.y + v.y, this.z + v.z)
   }
 
-  public translate(n: number): V3 {
+  translate(n: number): V3 {
     return new V3(this.x + n, this.y + n, this.z + n)
   }
 
-  public sub(v: V3): V3 {
+  sub(v: V3): V3 {
     return new V3(this.x - v.x, this.y - v.y, this.z - v.z)
   }
 
-  public scale(p: number): V3 {
+  scale(p: number): V3 {
     return new V3(p * this.x, p * this.y, p * this.z)
   }
 
-  public mul(p: V3): V3 {
+  mul(p: V3): V3 {
     return new V3(p.x * this.x, p.y * this.y, p.z * this.z)
   }
 
-  public cross(v: V3): V3 {
+  cross(v: V3): V3 {
     return new V3(
       (this.y * v.z) - (this.z * v.y),
       (this.z * v.x) - (this.x * v.z),
@@ -41,14 +41,12 @@ class V3 {
     )
   }
 
-  public unit() {
+  unit() {
     return this.scale(1 / this.length())
   }
-
-  public toString() {
-    return `[${this.x}, ${this.y}, ${this.z}]`
-  }
 }
+
+type Color = V3
 
 class Line {
   constructor(
@@ -56,32 +54,28 @@ class Line {
     public line: V3
   ) { }
 
-  public getPoint(distance: number): V3 {
+  getPoint(distance: number): V3 {
     return this.origin.add(this.line.scale(distance))
-  }
-
-  public toString() {
-    return `origin: ${this.origin}, line: ${this.line}`
   }
 }
 
 interface AmbientLight {
   type: 'ambient'
   radiance: number
-  color: V3
+  color: Color
 }
 
 interface DirectionalLight {
   type: 'directional'
   radiance: number
-  color: V3
+  color: Color
   location: V3
 }
 
 interface PointLight {
   type: 'point'
   radiance: number
-  color: V3
+  color: Color
   location: V3
 }
 
@@ -94,15 +88,10 @@ interface RayHit {
   distance: number
 }
 
-const solveq = (a: number, b: number, c: number): number[] => {
-  const d = b * b - 4 * a * c
-  if (d < 0) {
-    return []
-  } else if (d > 0) {
-    return [(-b - Math.sqrt(d)) / (2 * a), (-b + Math.sqrt(d)) / (2 * a)]
-  } else {
-    return [-b / (2 * a)]
-  }
+interface Scene {
+  items: Item[]
+  lights: Light[]
+  background: Color
 }
 
 interface Material {
@@ -118,6 +107,17 @@ abstract class Item {
     public material: Material
   ) {}
   abstract intersects(ray: Line): RayHit | null
+
+  solveq(a: number, b: number, c: number): number[] {
+    const d = b * b - 4 * a * c
+    if (d < 0) {
+      return []
+    } else if (d > 0) {
+      return [(-b - Math.sqrt(d)) / (2 * a), (-b + Math.sqrt(d)) / (2 * a)]
+    } else {
+      return [-b / (2 * a)]
+    }
+  }
 }
 
 class Sphere extends Item {
@@ -135,20 +135,20 @@ class Sphere extends Item {
 
   public intersects(ray: Line) {
     const d = ray.origin.sub(this.center)
-    const roots = solveq(ray.line.dot(ray.line), 2 * ray.line.dot(d), d.dot(d) - this.radius * this.radius)
+    const roots = this.solveq(ray.line.dot(ray.line), 2 * ray.line.dot(d), d.dot(d) - this.radius * this.radius)
     .filter((x) => x > Math.pow(10, -6))
     if (roots.length === 0) {
       return null
     } else {
       const distance = Math.min(...roots)
-      const point = ray.origin.add(ray.line.scale(distance))
+      const point = ray.getPoint(distance)
       const normal = point.sub(this.center).unit()
       return {
         ray,
         point,
         normal,
         distance
-      } as RayHit
+      }
     }
   }
 }
@@ -164,15 +164,11 @@ class Plane extends Item {
 
   intersects(ray: Line) {
     const distance = this.position.sub(ray.origin).dot(this.planeNormal) / ray.line.dot(this.planeNormal)
-    if (distance <= 0) {
-      return null
-    } else {
-      return {
-        ray,
-        point: ray.origin.add(ray.line.scale(distance)),
-        normal: this.planeNormal,
-        distance
-      }
+    return distance <= 0 ? null : {
+      ray,
+      point: ray.getPoint(distance),
+      normal: this.planeNormal,
+      distance
     }
   }
 }
@@ -188,7 +184,7 @@ class Canvas {
     document.body.appendChild(this.canvas)
   }
 
-  public addPixel(i: number, j: number, color: V3) {
+  public addPixel(i: number, j: number, color: Color) {
     const r = Math.round(color.x)
     const g = Math.round(color.y)
     const b = Math.round(color.z)
@@ -207,6 +203,76 @@ class Canvas {
   }
 }
 
+const calcShade = (item: Item, hitRay: RayHit, light: Light, scene: Scene): Color => {
+  const kd = item.material.diffuseReflection
+  const cd = item.material.diffuseColor
+  const ks = item.material.specularRefection
+  const e = item.material.shininess
+  const n = hitRay.normal
+  const cl = light.color
+  const ls = light.radiance
+  const s = hitRay.ray.origin
+  const p = hitRay.point
+
+  switch (light.type) {
+    case 'ambient': {
+      return cd.scale(kd).mul(cl.scale(ls))
+    }
+    case 'directional': {
+      const l = light.location.sub(p).unit()
+      return cd.scale(kd).scale(1 / 3.14).scale(Math.max(0, n.dot(l))).mul(cl.scale(ls))
+    }
+    case 'point': {
+      const w = s.sub(p).unit()
+      const l = light.location.sub(p).unit()
+
+      const shadowRay = new Line(p.add(l.scale(0.001)), l)
+      const inShadow = n.dot(w) > 0 &&
+        scene.items.filter((s) => s != item).some((s) => !!s.intersects(shadowRay))
+
+      if (inShadow) {
+        return new V3(0, 0, 0)
+      }
+
+      const diffuseAmount = Math.max(0, n.dot(l))
+      const diffuse = cd.scale(kd).scale(1 / 3.14)
+      .scale(diffuseAmount).mul(cl.scale(ls))
+
+      const r = n.scale(2 * diffuseAmount).sub(l)
+      const specularAmount = r.dot(w)
+      const specular = cl.scale(ks * Math.pow(specularAmount, e) * diffuseAmount * ls)
+      return diffuse.add(specular)
+    }
+  }
+}
+
+const trace = (ray: Line, scene: Scene, depth: number = 0): Color | null => {
+  if (depth > 3) {
+    return new V3(0, 0, 0)
+  }
+
+  const hits = scene.items.map((item) => {
+    const hitRay = item.intersects(ray)
+    return hitRay && { hitRay, item}
+  })
+  .filter(Boolean)
+
+  if (hits.length === 0) {
+    return null
+  }
+
+  let hit = hits[0]
+  hits.slice(1).forEach((h) => {
+    if (h.hitRay.distance < hit.hitRay.distance) {
+      hit = h
+    }
+  })
+
+  return scene.lights
+  .map((l) => calcShade(hit.item, hit.hitRay, l, scene))
+  .reduce((a, b) => a.add(b), new V3(0, 0, 0))
+}
+
 const main = () => {
   const width = 500
   const height = 500
@@ -223,8 +289,6 @@ const main = () => {
     {type:'directional', radiance: 1, color: new V3(1, 1, 1), location: new V3(1, -1, 0)},
     {type:'point', radiance: 3, color: new V3(1, 1, 1), location: new V3(1000, -5000, 0)},
   ]
-
-  const background = new V3(0, 0, 0)
 
   const items: Item[] = []
   for (let i = -1; i < 2; i++) {
@@ -260,77 +324,13 @@ const main = () => {
     )
   )
 
-  function trace(ray: Line, depth: number): V3 | null {
-    if (depth > 3) {
-      return new V3(0, 0, 0)
-    }
-
-    const hits = items.map((item) => {
-      const hitRay = item.intersects(ray)
-      return hitRay && { hitRay, item}
-    })
-      .filter(Boolean)
-
-    if (hits.length === 0) {
-      return null
-    }
-
-    let hit = hits[0]
-    hits.slice(1).forEach((h) => {
-      if (h.hitRay.distance < hit.hitRay.distance) {
-        hit = h
-      }
-    })
-
-    return lights
-      .map((l) => calcShade(hit.item, hit.hitRay, l))
-      .reduce((a, b) => a.add(b), new V3(0, 0, 0))
-  }
-
-  function calcShade(item: Item, hitRay: RayHit, light: Light): V3 {
-    const kd = item.material.diffuseReflection
-    const cd = item.material.diffuseColor
-    const ks = item.material.specularRefection
-    const e = item.material.shininess
-    const n = hitRay.normal
-    const cl = light.color
-    const ls = light.radiance
-    const s = hitRay.ray.origin
-    const p = hitRay.point
-
-    switch (light.type) {
-      case 'ambient': {
-        return cd.scale(kd).mul(cl.scale(ls))
-      }
-      case 'directional': {
-        const l = light.location.sub(p).unit()
-        return cd.scale(kd).scale(1 / 3.14).scale(Math.max(0, n.dot(l))).mul(cl.scale(ls))
-      }
-      case 'point': {
-        const w = s.sub(p).unit()
-        const l = light.location.sub(p).unit()
-
-        const shadowRay = new Line(p.add(l.scale(0.001)), l)
-        const inShadow = n.dot(w) > 0 &&
-          items.filter((s) => s != item).some((s) => !!s.intersects(shadowRay))
-
-        if (inShadow) {
-          return new V3(0, 0, 0)
-        }
-
-        const diffuseAmount = Math.max(0, n.dot(l))
-        const diffuse = cd.scale(kd).scale(1 / 3.14)
-        .scale(diffuseAmount).mul(cl.scale(ls))
-
-        const r = n.scale(2 * diffuseAmount).sub(l)
-        const specularAmount = r.dot(w)
-        const specular = cl.scale(ks * Math.pow(specularAmount, e) * diffuseAmount * ls)
-        return diffuse.add(specular)
-      }
-    }
-  }
-
   const canvas = new Canvas(width, height)
+
+  const scene: Scene = {
+    items,
+    lights,
+    background: new V3(0, 0, 0),
+  }
 
   for (let i = 0; i < width; i++) {
     for (let j = 0; j < height; j++) {
@@ -340,7 +340,7 @@ const main = () => {
       // eye -> line direction vector
       const d = uu.scale(x).add(vv.scale(y)).sub(ww.scale(viewDistance)).unit()
       const ray = new Line(eye, d)
-      const color = trace(ray, 0) || background
+      const color = trace(ray, scene) || scene.background
       const toRGB = (n: number) => Math.max(0, Math.round(Math.min(255, n * 255)))
       canvas.addPixel(i, j, new V3(toRGB(color.x), toRGB(color.y), toRGB(color.z)))
     }
