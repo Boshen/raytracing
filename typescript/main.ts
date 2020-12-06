@@ -180,7 +180,14 @@ class Canvas {
 
   constructor(public width: number, public height: number) {
     this.canvas = <HTMLCanvasElement> document.createElement('canvas')
+    this.canvas.width  = this.width
+    this.canvas.height = this.height
     this.ctx = this.canvas.getContext('2d')!
+    for (let i = 0; i < width; i++) {
+      for (let j = 0; j < height; j++) {
+        this.addPixel(i, j, new V3(0, 0, 0))
+      }
+    }
     document.body.appendChild(this.canvas)
   }
 
@@ -196,9 +203,7 @@ class Canvas {
   }
 
   public render() {
-    this.canvas.width  = this.width
-    this.canvas.height = this.height
-    let imageData = new ImageData(new Uint8ClampedArray(this.imageData), this.width, this.height)
+    const imageData = new ImageData(new Uint8ClampedArray(this.imageData), this.width, this.height)
     this.ctx.putImageData(imageData, 0, 0)
   }
 }
@@ -290,16 +295,14 @@ const trace = (scene: Scene, ray: Line, depth: number, color: Color): Color => {
   return shadeColor.add(reflectionColor)
 }
 
-const main = () => {
-  const width = 500
-  const height = 500
+const main = (width: number, height: number, { useSamples = true }: { useSamples: boolean}) => {
 
-  const lookat = new V3(0, 0, -50)
+  const lookat = new V3(0, 20, -50)
   const eye = new V3(0, -100, 500)
   const ww = eye.sub(lookat).unit()
   const vv = new V3(0, 1, 0)
   const uu = vv.cross(ww).unit()
-  const viewDistance = 400
+  const viewDistance = 300
 
   const lights: Light[] = [
     {type:'ambient', radiance: 0.1, color: new V3(0.05, 0.05, 0.05)},
@@ -308,8 +311,8 @@ const main = () => {
   ]
 
   const items: Item[] = []
-  for (let i = -1; i < 2; i++) {
-    for (let j = -1; j < 2; j++) {
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
       const material = {
         diffuseReflection: 0.8,
         diffuseColor: new V3(Math.max(0, i), Math.max(0, j), Math.max(0, i * j)),
@@ -349,25 +352,28 @@ const main = () => {
     background: new V3(0, 0, 0),
   }
 
-  const samplePoints = 5
+  const samplePoints = useSamples ? 5 : 1
   const toRGB = (n: number) => Math.max(0, Math.round(Math.min(255, n / (samplePoints * samplePoints) * 255)))
+
+  const samples = (x: number, y: number) => {
+    let color = new V3(0, 0, 0)
+    for (let i = 0; i < samplePoints; i++) {
+      for (let j = 0; j < samplePoints; j++) {
+        const dx = (i + 0.5) / samplePoints
+        const dy = (j + 0.5) / samplePoints
+        const d = uu.scale(x + dx).add(vv.scale(y + dy)).sub(ww.scale(viewDistance)).unit()
+        const ray = new Line(eye, d)
+        color = color.add(trace(scene, ray, 0, scene.background))
+      }
+    }
+    return color
+  }
 
   for (let i = 0; i < width; i++) {
     for (let j = 0; j < height; j++) {
-      let color = new V3(0, 0, 0)
-
-      for (let x = 0; x < samplePoints; x++) {
-        for (let y = 0; y < samplePoints; y++) {
-          const dx = (x + 0.5) / samplePoints
-          const dy = (y + 0.5) / samplePoints
-          const fx = i - width / 2 + dx
-          const fy = j - height / 2 + dy
-          const d = uu.scale(fx).add(vv.scale(fy)).sub(ww.scale(viewDistance)).unit()
-          const ray = new Line(eye, d)
-          color = color.add(trace(scene, ray, 0, scene.background))
-        }
-      }
-
+      const x = i - width / 2
+      const y = j - height / 2
+      const color = samples(x, y)
       canvas.addPixel(i, j, new V3(toRGB(color.x), toRGB(color.y), toRGB(color.z)))
     }
   }
@@ -375,4 +381,4 @@ const main = () => {
   canvas.render()
 }
 
-main()
+main(500, 500, { useSamples: true })
