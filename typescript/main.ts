@@ -297,8 +297,8 @@ const trace = (scene: Scene, ray: Line, depth: number, color: Color): Color => {
 
 const main = (width: number, height: number, { useSamples = true }: { useSamples: boolean}) => {
 
-  const lookat = new V3(0, 20, -50)
-  const eye = new V3(0, -100, 500)
+  const lookat = new V3(0, 0, 0)
+  const eye = new V3(0, -100, 400)
   const ww = eye.sub(lookat).unit()
   const vv = new V3(0, 1, 0)
   const uu = vv.cross(ww).unit()
@@ -310,12 +310,24 @@ const main = (width: number, height: number, { useSamples = true }: { useSamples
     {type:'point', radiance: 3, color: new V3(1, 1, 1), location: new V3(1000, -5000, 0)},
   ]
 
+  const colors = [
+    new V3(1, 1, 1),
+    new V3(1, 0, 0),
+    new V3(1, 165/255, 0),
+    new V3(1, 1, 0),
+    new V3(0, 128/255, 0),
+    new V3(0, 0, 1),
+    new V3(75/255, 0, 130/255),
+    new V3(238/255, 130/255, 238/255),
+    new V3(0, 1, 1),
+  ]
+
   const items: Item[] = []
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
       const material = {
         diffuseReflection: 0.8,
-        diffuseColor: new V3(Math.max(0, i), Math.max(0, j), Math.max(0, i * j)),
+        diffuseColor: colors[(i + 1) * 3 + j + 1],
         reflection: 0.2,
         specularRefection: 0.2,
         shininess: 20
@@ -337,7 +349,7 @@ const main = (width: number, height: number, { useSamples = true }: { useSamples
       {
         diffuseReflection: 0.5,
         diffuseColor: new V3(0.5, 0.5, 0.5),
-        reflection: 0.5,
+        reflection: 0.2,
         specularRefection: 0,
         shininess: 0
       }
