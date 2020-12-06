@@ -349,16 +349,25 @@ const main = () => {
     background: new V3(0, 0, 0),
   }
 
+  const samplePoints = 5
+  const toRGB = (n: number) => Math.max(0, Math.round(Math.min(255, n / (samplePoints * samplePoints) * 255)))
+
   for (let i = 0; i < width; i++) {
     for (let j = 0; j < height; j++) {
-      // transformed pixel position
-      const x = i - width / 2
-      const y = j - height / 2
-      // eye -> line direction vector
-      const d = uu.scale(x).add(vv.scale(y)).sub(ww.scale(viewDistance)).unit()
-      const ray = new Line(eye, d)
-      const color = trace(scene, ray, 0, scene.background)
-      const toRGB = (n: number) => Math.max(0, Math.round(Math.min(255, n * 255)))
+      let color = new V3(0, 0, 0)
+
+      for (let x = 0; x < samplePoints; x++) {
+        for (let y = 0; y < samplePoints; y++) {
+          const dx = (x + 0.5) / samplePoints
+          const dy = (y + 0.5) / samplePoints
+          const fx = i - width / 2 + dx
+          const fy = j - height / 2 + dy
+          const d = uu.scale(fx).add(vv.scale(fy)).sub(ww.scale(viewDistance)).unit()
+          const ray = new Line(eye, d)
+          color = color.add(trace(scene, ray, 0, scene.background))
+        }
+      }
+
       canvas.addPixel(i, j, new V3(toRGB(color.x), toRGB(color.y), toRGB(color.z)))
     }
   }
