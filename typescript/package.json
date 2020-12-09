@@ -4,10 +4,20 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "watch": "tsc --watch main.ts",
-    "build": "tsc main.ts"
+    "watch": "tsc --watch raytracing.ts",
+    "build": "tsc raytracing.ts"
   },
   "devDependencies": {
     "typescript": "^4.1.2"
+  },
+  "prettier": {
+    "arrowParens": "always",
+    "bracketSpacing": true,
+    "jsxBracketSameLine": false,
+    "jsxSingleQuote": true,
+    "printWidth": 120,
+    "semi": false,
+    "singleQuote": true,
+    "trailingComma": "es5"
   }
 }
