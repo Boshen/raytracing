@@ -84,7 +84,7 @@ type Light = AmbientLight | DirectionalLight | PointLight
 interface RayHit {
   ray: Ray
   point: V3
-  normal: V3
+  // normal: V3
   distance: number
 }
 
