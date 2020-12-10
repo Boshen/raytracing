@@ -31,6 +31,12 @@ var Vec3 = /** @class */ (function () {
     Vec3.prototype.unit = function () {
         return this.scale(1 / this.length());
     };
+    Vec3.prototype.distance = function (v) {
+        var x = v.x - this.x;
+        var y = v.y - this.y;
+        var z = v.z - this.z;
+        return Math.sqrt(x * x + y * y + z * z);
+    };
     return Vec3;
 }());
 var Matrix = /** @class */ (function () {
@@ -86,30 +92,44 @@ var Triangle = /** @class */ (function () {
         this.v2 = v2;
         this.color = color;
     }
-    Triangle.prototype.sign = function (p1, p2, p3) {
-        return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
-    };
+    // public intersects(ray: Ray) {
+    // const v0 = this.v0;
+    // const v1 = this.v1;
+    // const v2 = this.v2;
+    // const e1 = v1.sub(v0);
+    // const e2 = v2.sub(v0);
+    // const b = ray.start.sub(v0);
+    // const d = ray.direction
+    // const A = new Matrix([
+    // -d.x, -d.y, -d.z,
+    // e1.x, e1.y, e1.z,
+    // e2.x, e2.y, e2.z
+    // ])
+    // const inverse = A.inverse()
+    // return inverse && inverse.multiplyVec3(b);
+    // }
+    // Möller–Trumbore intersection algorithm
     Triangle.prototype.intersects = function (ray) {
         var EPSILON = 0.000001;
         var e1 = this.v1.sub(this.v0);
         var e2 = this.v2.sub(this.v0);
-        var P = ray.direction.cross(e2);
-        var det = e1.dot(P);
-        if (det > -EPSILON && det < EPSILON) {
+        var h = ray.direction.cross(e2);
+        var a = e1.dot(h);
+        if (a > -EPSILON && a < EPSILON) {
             return null;
         }
-        var inv_det = 1 / det;
-        var T = ray.start.sub(this.v0);
-        var u = T.dot(P) * inv_det;
+        var f = 1 / a;
+        var s = ray.start.sub(this.v0);
+        var u = f * s.dot(h);
         if (u < 0 || u > 1) {
             return null;
         }
-        var Q = T.cross(e1);
-        var v = ray.direction.dot(Q) * inv_det;
+        var q = s.cross(e1);
+        var v = f * ray.direction.dot(q);
         if (v < 0 || u + v > 1) {
             return null;
         }
-        var t = e2.dot(Q) * inv_det;
+        var t = f * e2.dot(q);
         if (t > EPSILON) {
             return {
                 ray: ray,
@@ -118,6 +138,20 @@ var Triangle = /** @class */ (function () {
             };
         }
         return null;
+    };
+    Triangle.prototype.scale = function (L) {
+        this.v0 = this.v0.scale(2 / L);
+        this.v1 = this.v1.scale(2 / L);
+        this.v2 = this.v2.scale(2 / L);
+        this.v0 = this.v0.sub(new Vec3(1, 1, 1));
+        this.v1 = this.v1.sub(new Vec3(1, 1, 1));
+        this.v2 = this.v2.sub(new Vec3(1, 1, 1));
+        this.v0.x = this.v0.x * -1;
+        this.v1.x = this.v1.x * -1;
+        this.v2.x = this.v2.x * -1;
+        this.v0.y = this.v0.y * -1;
+        this.v1.y = this.v1.y * -1;
+        this.v2.y = this.v2.y * -1;
     };
     return Triangle;
 }());
@@ -153,55 +187,67 @@ var Canvas = /** @class */ (function () {
     };
     return Canvas;
 }());
-var lookat = new Vec3(0, 0, 0);
 var camera = new Vec3(0, 0, -3);
+var viewDistance = 500;
 var width = 500;
 var height = 500;
 var focalLength = width;
-var ww = camera.sub(lookat).unit();
-var vv = new Vec3(0, 1, 0);
-var uu = vv.cross(ww).unit();
 var L = 555;
-var z_front = -L;
-var red = new Vec3(255, 0, 0);
-var white = new Vec3(255, 255, 255);
+var z_front = 0; // -L
+var red = new Vec3(0.75, 0.15, 0.15);
+var white = new Vec3(0.75, 0.75, 0.75);
+var beige = new Vec3(0.85, 0.85, 0.7);
+var blue = new Vec3(0.05, 0.6, 1);
+var green = new Vec3(0.15, 0.75, 0.15);
 var A = new Vec3(L, 0, z_front);
 var B = new Vec3(0, 0, z_front);
 var C = new Vec3(L, 0, L);
 var D = new Vec3(0, 0, L);
-var E = new Vec3(L, L - 1, z_front);
-var F = new Vec3(0, L - 1, z_front);
-var G = new Vec3(L, L - 1, L);
-var H = new Vec3(0, L - 1, L);
-var floor = [
-    new Triangle(C, B, A, red),
-    new Triangle(C, D, B, red)
+var E = new Vec3(L, L, z_front);
+var F = new Vec3(0, L, z_front);
+var G = new Vec3(L, L, L);
+var H = new Vec3(0, L, L);
+var triangles = [
+    // floor
+    new Triangle(C, B, A, beige),
+    new Triangle(C, D, B, beige),
+    // left
+    new Triangle(A, E, C, green),
+    new Triangle(C, E, G, green),
+    // right
+    new Triangle(F, B, D, blue),
+    new Triangle(H, F, D, blue),
+    // front wall
+    new Triangle(G, D, C, beige),
+    new Triangle(G, H, D, beige),
+    // ceiling
+    new Triangle(E, F, G, beige),
+    new Triangle(F, H, G, beige),
 ];
-var backwall = [
-    new Triangle(G, D, C, white),
-    new Triangle(G, H, D, white),
-    new Triangle(F, E, A, white),
-    new Triangle(F, A, B, white),
-];
-var triangles = floor.concat(backwall);
+triangles.forEach(function (o) { return o.scale(L); });
 var canvas = new Canvas(width, height);
-for (var x = 0; x < width; x++) {
-    for (var y = 0; y < height; y++) {
-        // const d = new Vec3(x - width / 2, y - height / 2, focalLength).unit()
-        var d = uu.scale(x).add(vv.scale(y)).sub(ww.scale(focalLength)).unit();
+for (var i = 0; i < width; i++) {
+    for (var j = 0; j < height; j++) {
+        var x = i - width / 2;
+        var y = j - height / 2;
+        var d = new Vec3(x, y, focalLength).unit();
+        // const d = uu.scale(x)
+        // .add(vv.scale(y))
+        // .sub(ww.scale(viewDistance))
+        // .unit()
         var ray = new Ray(camera, d);
         var minDistance = Infinity;
         var hitItem = null;
-        for (var _i = 0, floor_1 = floor; _i < floor_1.length; _i++) {
-            var item = floor_1[_i];
-            var hit = item.intersects(ray);
-            if (hit && hit.distance < minDistance) {
-                minDistance = hit.distance;
+        for (var _i = 0, triangles_1 = triangles; _i < triangles_1.length; _i++) {
+            var item = triangles_1[_i];
+            var int = item.intersects(ray);
+            if (int && int.distance < minDistance) {
+                minDistance = int.distance;
                 hitItem = item;
             }
         }
         if (hitItem) {
-            canvas.addPixel(x, y, hitItem.color);
+            canvas.addPixel(i, j, hitItem.color.scale(255));
         }
     }
 }

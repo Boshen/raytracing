@@ -44,6 +44,13 @@ class Vec3 {
   unit() {
     return this.scale(1 / this.length())
   }
+
+  distance(v: Vec3) {
+    const x = v.x - this.x
+    const y = v.y - this.y
+    const z = v.z - this.z
+    return Math.sqrt(x * x + y * y + z * z)
+  }
 }
 
 type Color = Vec3
@@ -123,38 +130,50 @@ class Triangle {
   ) {
   }
 
-  sign(p1: Vec3, p2: Vec3, p3: Vec3){
-    return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
-  }
+  // public intersects(ray: Ray) {
+    // const v0 = this.v0;
+    // const v1 = this.v1;
+    // const v2 = this.v2;
+    // const e1 = v1.sub(v0);
+    // const e2 = v2.sub(v0);
+    // const b = ray.start.sub(v0);
+    // const d = ray.direction
+    // const A = new Matrix([
+      // -d.x, -d.y, -d.z,
+      // e1.x, e1.y, e1.z,
+      // e2.x, e2.y, e2.z
+    // ])
+    // const inverse = A.inverse()
+    // return inverse && inverse.multiplyVec3(b);
+  // }
 
-
+  // Möller–Trumbore intersection algorithm
   public intersects(ray: Ray): HitRay | null {
     const EPSILON = 0.000001;
     const e1 = this.v1.sub(this.v0)
     const e2 = this.v2.sub(this.v0)
 
-    const P = ray.direction.cross(e2)
-    const det = e1.dot(P);
-    if (det > -EPSILON && det < EPSILON) {
+    const h = ray.direction.cross(e2)
+    const a = e1.dot(h);
+    if (a > -EPSILON && a < EPSILON) {
       return null
     }
 
-    const inv_det = 1 / det;
-    const T = ray.start.sub(this.v0);
-    const u = T.dot(P) * inv_det;
+    const f = 1 / a;
+    const s = ray.start.sub(this.v0);
+    const u = f * s.dot(h);
     if (u < 0 || u > 1) {
       return null
     }
 
-    const Q = T.cross(e1);
-    const v = ray.direction.dot(Q) * inv_det;
+    const q = s.cross(e1);
+    const v = f * ray.direction.dot(q);
 
     if (v < 0 || u + v  > 1) {
       return null
     }
 
-    const t = e2.dot(Q) * inv_det;
-
+    const t = f * e2.dot(q);
     if (t > EPSILON) {
       return {
         ray,
@@ -165,6 +184,24 @@ class Triangle {
 
     return null;
   }
+
+  scale(L: number) {
+    this.v0 = this.v0.scale(2 / L);
+    this.v1 = this.v1.scale(2 / L);
+    this.v2 = this.v2.scale(2 / L);
+
+    this.v0 = this.v0.sub(new Vec3(1, 1, 1));
+    this.v1 = this.v1.sub(new Vec3(1, 1, 1));
+    this.v2 = this.v2.sub(new Vec3(1, 1, 1));
+
+    this.v0.x = this.v0.x * -1;
+    this.v1.x = this.v1.x * -1;
+    this.v2.x = this.v2.x * -1;
+
+    this.v0.y = this.v0.y * -1;
+    this.v1.y = this.v1.y * -1;
+    this.v2.y = this.v2.y * -1;
+	}
 }
 
 class Canvas {
@@ -202,65 +239,76 @@ class Canvas {
   }
 }
 
-  const lookat = new Vec3(0, 0, 0)
 const camera = new Vec3(0, 0, -3)
+const viewDistance = 500
 const width = 500
 const height = 500
 const focalLength = width
-  const ww = camera.sub(lookat).unit()
-  const vv = new Vec3(0, 1, 0)
-  const uu = vv.cross(ww).unit()
 
 const L = 555
-const z_front = -L
+const z_front = 0 // -L
 
-const red = new Vec3(255, 0, 0)
-const white = new Vec3(255, 255, 255)
+const red = new Vec3(0.75, 0.15, 0.15)
+const white = new Vec3(0.75, 0.75, 0.75)
+const beige = new Vec3(0.85, 0.85, 0.7)
+const blue = new Vec3(0.05, 0.6, 1)
+const green = new Vec3(0.15, 0.75, 0.15);
+
 
 const A = new Vec3(L, 0, z_front)
 const B = new Vec3(0, 0, z_front)
-const C = new Vec3(L,0,L)
-const D = new Vec3(0,0,L)
-const E = new Vec3(L, L - 1, z_front)
-const F = new Vec3(0, L - 1, z_front)
-const G = new Vec3(L, L - 1, L)
-const H = new Vec3(0, L - 1, L)
+const C = new Vec3(L, 0, L)
+const D = new Vec3(0, 0, L)
+const E = new Vec3(L, L, z_front)
+const F = new Vec3(0, L, z_front)
+const G = new Vec3(L, L, L)
+const H = new Vec3(0, L, L)
 
-const floor = [
-  new Triangle(C, B, A, red),
-  new Triangle(C, D, B, red)
+const triangles = [
+  // floor
+  new Triangle(C, B, A, beige),
+  new Triangle(C, D, B, beige),
+  // left
+  new Triangle(A, E, C, green),
+  new Triangle(C, E, G, green),
+  // right
+  new Triangle(F, B, D, blue),
+  new Triangle(H, F, D, blue),
+  // front wall
+  new Triangle(G, D, C, beige),
+  new Triangle(G, H, D, beige),
+  // ceiling
+  new Triangle(E, F, G, beige),
+  new Triangle(F, H, G, beige),
 ]
 
-const backwall = [
-  new Triangle(G, D, C, white),
-  new Triangle(G, H, D, white),
-  new Triangle(F, E, A, white),
-  new Triangle(F, A, B, white),
-]
-
-const triangles = floor.concat(backwall)
+triangles.forEach((o) => o.scale(L))
 
 const canvas = new Canvas(width, height)
 
-for (let x = 0; x < width; x++) {
-  for (let y = 0; y < height; y++) {
-    // const d = new Vec3(x - width / 2, y - height / 2, focalLength).unit()
-    const d = uu.scale(x).add(vv.scale(y)).sub(ww.scale(focalLength)).unit()
+for (let i = 0; i < width; i++) {
+  for (let j = 0; j < height; j++) {
+    const x = i - width / 2
+    const y = j - height / 2
+    const d = new Vec3(x, y, focalLength).unit()
+      // const d = uu.scale(x)
+      // .add(vv.scale(y))
+      // .sub(ww.scale(viewDistance))
+      // .unit()
     const ray = new Ray(camera, d)
 
     let minDistance = Infinity
     let hitItem: Triangle = null
-    for (let item of floor) {
-      const hit = item.intersects(ray)
-      if (hit && hit.distance < minDistance) {
-        minDistance = hit.distance
+    for (let item of triangles) {
+      const int = item.intersects(ray)
+      if (int && int.distance < minDistance) {
+        minDistance = int.distance
         hitItem = item
       }
     }
     if (hitItem) {
-      canvas.addPixel(x, y, hitItem.color)
+      canvas.addPixel(i, j, hitItem.color.scale(255))
     }
-
   }
 }
 
