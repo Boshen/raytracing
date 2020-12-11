@@ -25,8 +25,8 @@ export class RayTracing {
   }
 
   algorithm() {
-    new Array({ lenght: this.width }).forEach((_, i) => {
-      new Array({ lenght: this.height }).forEach((_, j) => {
+    Array.from({ length: this.width }).forEach((_, i) => {
+      Array.from({ length: this.height }).forEach((_, j) => {
         const x = i - this.width / 2
         const y = j - this.height / 2
         const d = new Vec3(x, y, this.focalLength).unit()
@@ -66,7 +66,7 @@ export class RayTracing {
     const cd = model.material.diffuseColor
     const ks = model.material.specularRefection
     const e = model.material.shininess
-    const n = model.normal
+    const n = model.normal(point)
     const cl = light.color
     const ls = light.radiance
     const s = ray.start
@@ -121,10 +121,11 @@ export class RayTracing {
     if (reflection === 0) {
       return color
     }
-    const reflectDir = 2 * ray.direction.dot(model.normal)
+    const normal = model.normal(point)
+    const reflectDir = 2 * ray.direction.dot(normal)
     const reflectRay = new Ray(
       point,
-      ray.direction.sub(model.normal.scale(reflectDir))
+      ray.direction.sub(normal.scale(reflectDir))
     )
     const reflectionColor = this.trace(reflectRay, depth + 1, color)
     return reflectionColor.scale(reflection).add(color)

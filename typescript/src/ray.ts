@@ -1,10 +1,10 @@
 import { Vec3 } from './vec3'
-import { Triangle } from './triangle'
+import { Model } from './model'
 
 export interface HitRay {
   ray: Ray
   point: Vec3
-  model: Triangle
+  model: Model
   distance: number
 }
 
