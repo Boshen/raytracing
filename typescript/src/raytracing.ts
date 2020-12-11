@@ -12,29 +12,49 @@ export class RayTracing {
   focalLength = this.width
   canvas: Canvas
   background = new Vec3(0, 0, 0)
+  useAntialias = false
   lights: Light[] = [
     { type: 'ambient', radiance: 1, color: new Vec3(0.2, 0.2, 0.2) },
     { type: 'directional', radiance: 1, color: new Vec3(1, 1, 1), location: new Vec3(0, 0, -1) },
     { type: 'point', radiance: 3, color: new Vec3(1, 1, 1), location: new Vec3(0, -1, 0) },
   ]
 
-  constructor() {
+  constructor({ useAntialias }: { useAntialias: boolean }) {
+    this.useAntialias = useAntialias
     this.canvas = new Canvas(this.width, this.height)
     this.algorithm()
     this.canvas.render()
   }
 
   algorithm() {
+    const toRGB = (c: number) => Math.max(0, Math.round(Math.min(255, c * 255)))
     Array.from({ length: this.width }).forEach((_, i) => {
       Array.from({ length: this.height }).forEach((_, j) => {
         const x = i - this.width / 2
         const y = j - this.height / 2
-        const d = new Vec3(x, y, this.focalLength).unit()
-        const ray = new Ray(this.camera, d)
-        const color = this.trace(ray, 0, this.background)
-        this.canvas.addPixel(i, j, color.scale(255))
+        const color = this.useAntialias ? this.antialias(x, y) : this.getColor(x, y)
+        this.canvas.addPixel(i, j, new Vec3(toRGB(color.x), toRGB(color.y), toRGB(color.z)))
       })
     })
+  }
+
+  antialias(x: number, y: number) {
+    const n = 5 // sample points
+    let color = new Vec3(0, 0, 0)
+    Array.from({ length: n }).forEach((_, i) => {
+      Array.from({ length: n }).forEach((_, j) => {
+        const dx = (i + 0.5) / n
+        const dy = (j + 0.5) / n
+        color = color.add(this.getColor(x + dx, y + dy))
+      })
+    })
+    return color.scale(1 / ( n * n))
+  }
+
+  getColor(x: number, y: number) {
+    const d = new Vec3(x, y, this.focalLength).unit()
+    const ray = new Ray(this.camera, d)
+    return this.trace(ray, 0, this.background)
   }
 
   trace(ray: Ray, depth: number, color: Color): Color {

@@ -1,2 +1,2 @@
 import { RayTracing } from './raytracing'
-new RayTracing()
+new RayTracing({ useAntialias: true })
