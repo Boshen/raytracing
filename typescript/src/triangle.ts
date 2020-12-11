@@ -49,6 +49,7 @@ export class Triangle {
     return {
       ray,
       point: ray.getPoint(t),
+      model: this,
       distance: t,
     }
   }
