@@ -6,4 +6,5 @@ export interface Material {
   reflection: number
   specularRefection: number
   shininess: number
+  transparent: boolean
 }

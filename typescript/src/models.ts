@@ -4,12 +4,13 @@ import { Triangle } from './triangle'
 const L = 555
 const z_front = -L // closed box for mirror effect
 
-const m = (diffuseColor: Color) => ({
+const m = (diffuseColor: Color, transparent: boolean = false) => ({
   diffuseReflection: 1,
   diffuseColor,
   reflection: 0,
   specularRefection: 0,
   shininess: 0,
+  transparent,
 })
 
 const red = m(new Vec3(0.75, 0.15, 0.15))
@@ -17,16 +18,16 @@ const beige = m(new Vec3(0.85, 0.85, 0.7))
 const blue = m(new Vec3(0.05, 0.6, 1))
 const green = m(new Vec3(0.15, 0.75, 0.15))
 const orange = m(new Vec3(0.8, 0.7, 0.05))
-const white = m(new Vec3(1, 1, 1))
+const transparent = m(new Vec3(1, 1, 1), true)
 
 let A = new Vec3(L, 0, z_front)
 let B = new Vec3(0, 0, z_front)
 let C = new Vec3(L, 0, L)
 let D = new Vec3(0, 0, L)
-let E = new Vec3(L, L - 1, z_front)
-let F = new Vec3(0, L - 1, z_front)
-let G = new Vec3(L, L - 1, L)
-let H = new Vec3(0, L - 1, L)
+let E = new Vec3(L, L, z_front)
+let F = new Vec3(0, L, z_front)
+let G = new Vec3(L, L, L)
+let H = new Vec3(0, L, L)
 
 const walls = [
   // floor
@@ -42,8 +43,8 @@ const walls = [
   new Triangle(G, D, C, beige),
   new Triangle(G, H, D, beige),
   // wall behind camera
-  new Triangle(F, E, A, beige),
-  new Triangle(F, A, B, beige),
+  // new Triangle(F, E, A, beige),
+  // new Triangle(F, A, B, beige),
 ]
 
 // ceiling with hole
@@ -60,6 +61,7 @@ E = new Vec3(L + 5, L, z_front)
 F = new Vec3(-5, L, z_front)
 G = new Vec3(L + 5, L, L + 5)
 H = new Vec3(-5, L, L + 5)
+
 const ceiling = [
   new Triangle(E, M, G, beige),
   new Triangle(M, O, G, beige),
@@ -69,6 +71,14 @@ const ceiling = [
   new Triangle(F, H, P, beige),
   new Triangle(K, L2, O, beige),
   new Triangle(L2, P, O, beige),
+  // full ceiling
+  // new Triangle(E, F, G, beige),
+  // new Triangle(F, H, G, beige),
+]
+
+const lightSurface = [
+  new Triangle(L2, K, I, transparent),
+  new Triangle(L2, I, J, transparent),
 ]
 
 // light hole
@@ -78,14 +88,14 @@ N = new Vec3(L / 2 - holeRadius, L - lightBoxHeight, L / 2 - holeRadius)
 O = new Vec3(L / 2 + holeRadius, L - lightBoxHeight, L / 2 + holeRadius)
 P = new Vec3(L / 2 - holeRadius, L - lightBoxHeight, L / 2 + holeRadius)
 const hole = [
-  new Triangle(I, J, M, white),
-  new Triangle(J, N, M, white),
-  new Triangle(J, L2, N, white),
-  new Triangle(L2, P, N, white),
-  new Triangle(L2, K, O, white),
-  new Triangle(L2, O, P, white),
-  new Triangle(I, M, O, white),
-  new Triangle(K, I, O, white),
+  new Triangle(I, J, M, transparent),
+  new Triangle(J, N, M, transparent),
+  new Triangle(J, L2, N, transparent),
+  new Triangle(L2, P, N, transparent),
+  new Triangle(L2, K, O, transparent),
+  new Triangle(L2, O, P, transparent),
+  new Triangle(I, M, O, transparent),
+  new Triangle(K, I, O, transparent),
 ]
 
 // short block
@@ -133,5 +143,5 @@ const tallBlock = [
   new Triangle(G, H, F, orange),
 ]
 
-export const models = walls.concat(ceiling).concat(hole).concat(shortBlock).concat(tallBlock)
+export const models = walls.concat(ceiling, hole, lightSurface, shortBlock, tallBlock)
 models.forEach((o) => o.scale(L))

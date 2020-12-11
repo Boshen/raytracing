@@ -15,8 +15,8 @@ export class RayTracing {
   background = new Vec3(0, 0, 0)
   lights: Light[] = [
     { type: 'ambient', radiance: 1, color: new Vec3(0.2, 0.2, 0.2) },
-    { type: 'directional', radiance: 1, color: new Vec3(1, 1, 1), location: new Vec3(0, -1, 0) },
-    { type: 'point', radiance: 2, color: new Vec3(1, 1, 1), location: new Vec3(0, -0.8, -0.27) },
+    { type: 'directional', radiance: 1, color: new Vec3(1, 1, 1), location: new Vec3(0, 0, -1) },
+    { type: 'point', radiance: 3, color: new Vec3(1, 1, 1), location: new Vec3(0, -1, 0) },
   ]
 
   constructor() {
@@ -89,6 +89,16 @@ export class RayTracing {
       case 'point': {
         const w = s.sub(p).unit()
         const l = light.location.sub(p).unit()
+
+        // calculate shadow
+        const shadowRay = new Ray(p.add(l.scale(0.00001)), l)
+        const inShadow = n.dot(w) > 0 && models
+          .filter((s) => s != model)
+          .filter((s) => !s.material.transparent)
+          .some((s) => !!s.intersects(shadowRay))
+        if (inShadow) {
+          return this.background
+        }
 
         const diffuseAmount = Math.max(0, n.dot(l))
         const diffuse = cd
