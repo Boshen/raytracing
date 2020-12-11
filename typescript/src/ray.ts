@@ -3,7 +3,6 @@ import { Vec3 } from './vec3'
 export interface HitRay {
   ray: Ray
   point: Vec3
-  // normal: Vec3
   distance: number
 }
 
@@ -14,4 +13,3 @@ export class Ray {
     return this.start.add(this.direction.scale(distance))
   }
 }
-

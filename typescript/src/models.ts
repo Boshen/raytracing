@@ -1,15 +1,23 @@
-import { Vec3 } from './vec3'
+import { Vec3, Color } from './vec3'
 import { Triangle } from './triangle'
 
 const L = 555
 const z_front = -L // closed box for mirror effect
 
-const red = new Vec3(0.75, 0.15, 0.15)
-const beige = new Vec3(0.85, 0.85, 0.7)
-const blue = new Vec3(0.05, 0.6, 1)
-const green = new Vec3(0.15, 0.75, 0.15)
-const orange = new Vec3(0.8, 0.7, 0.05)
+const m = (diffuseColor: Color) => ({
+  diffuseReflection: 1,
+  diffuseColor,
+  reflection: 0,
+  specularRefection: 0,
+  shininess: 0,
+})
 
+const red = m(new Vec3(0.75, 0.15, 0.15))
+const beige = m(new Vec3(0.85, 0.85, 0.7))
+const blue = m(new Vec3(0.05, 0.6, 1))
+const green = m(new Vec3(0.15, 0.75, 0.15))
+const orange = m(new Vec3(0.8, 0.7, 0.05))
+const white = m(new Vec3(1, 1, 1))
 
 let A = new Vec3(L, 0, z_front)
 let B = new Vec3(0, 0, z_front)
@@ -70,14 +78,14 @@ N = new Vec3(L / 2 - holeRadius, L - lightBoxHeight, L / 2 - holeRadius)
 O = new Vec3(L / 2 + holeRadius, L - lightBoxHeight, L / 2 + holeRadius)
 P = new Vec3(L / 2 - holeRadius, L - lightBoxHeight, L / 2 + holeRadius)
 const hole = [
-  new Triangle(I, J, M, beige),
-  new Triangle(J, N, M, beige),
-  new Triangle(J, L2, N, beige),
-  new Triangle(L2, P, N, beige),
-  new Triangle(L2, K, O, beige),
-  new Triangle(L2, O, P, beige),
-  new Triangle(I, M, O, beige),
-  new Triangle(K, I, O, beige),
+  new Triangle(I, J, M, white),
+  new Triangle(J, N, M, white),
+  new Triangle(J, L2, N, white),
+  new Triangle(L2, P, N, white),
+  new Triangle(L2, K, O, white),
+  new Triangle(L2, O, P, white),
+  new Triangle(I, M, O, white),
+  new Triangle(K, I, O, white),
 ]
 
 // short block
@@ -125,6 +133,5 @@ const tallBlock = [
   new Triangle(G, H, F, orange),
 ]
 
-export const triangles = walls.concat(ceiling).concat(hole).concat(shortBlock).concat(tallBlock)
-
-triangles.forEach((o) => o.scale(L))
+export const models = walls.concat(ceiling).concat(hole).concat(shortBlock).concat(tallBlock)
+models.forEach((o) => o.scale(L))

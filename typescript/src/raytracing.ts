@@ -1,8 +1,9 @@
 import { Vec3 } from './vec3'
-import { Ray } from './ray'
-import { triangles } from './models'
+import { Ray, HitRay } from './ray'
+import { models } from './models'
 import { Canvas } from './canvas'
 import { Triangle } from './triangle'
+import { Light } from './light'
 
 export class RayTracing {
   camera = new Vec3(0, 0, -3)
@@ -11,6 +12,12 @@ export class RayTracing {
   height = 500
   focalLength = this.width
   canvas: Canvas
+  background = new Vec3(0, 0, 0)
+  lights: Light[] = [
+    { type: 'ambient', radiance: 1, color: new Vec3(0.2, 0.2, 0.2) },
+    { type: 'directional', radiance: 1, color: new Vec3(1, 1, 1), location: new Vec3(0, -1, 0) },
+    { type: 'point', radiance: 2, color: new Vec3(1, 1, 1), location: new Vec3(0, -0.8, -0.27) },
+  ]
 
   constructor() {
     this.canvas = new Canvas(this.width, this.height)
@@ -25,19 +32,75 @@ export class RayTracing {
         const y = j - this.height / 2
         const d = new Vec3(x, y, this.focalLength).unit()
         const ray = new Ray(this.camera, d)
+        const color = this.trace(ray)
+        this.canvas.addPixel(i, j, color.scale(255))
+      }
+    }
+  }
 
-        let minDistance = Infinity
-        let hitItem: Triangle | null = null
-        for (let item of triangles) {
-          const int = item.intersects(ray)
-          if (int && int.distance < minDistance) {
-            minDistance = int.distance
-            hitItem = item
-          }
-        }
-        if (hitItem) {
-          this.canvas.addPixel(i, j, hitItem.color.scale(255))
-        }
+  trace(ray: Ray) {
+    let minDistance = Infinity
+    let hitModel: Triangle | null = null
+    let hitRay: HitRay | null = null
+
+    models.forEach((m) => {
+      const hit = m.intersects(ray)
+      if (hit && hit.distance < minDistance) {
+        minDistance = hit.distance
+        hitModel = m
+        hitRay = hit
+      }
+    })
+
+    if (!hitModel || !hitRay) {
+      return this.background
+    }
+
+    const shadeColor = this.lights
+      .map((l) => this.calcShadeColor(hitModel!, hitRay!, l))
+      .reduce((a, b) => a.add(b), this.background)
+
+    return shadeColor
+  }
+
+  calcShadeColor(model: Triangle, hitRay: HitRay, light: Light) {
+    const kd = model.material.diffuseReflection
+    const cd = model.material.diffuseColor
+    const ks = model.material.specularRefection
+    const e = model.material.shininess
+    const n = model.normal
+    const cl = light.color
+    const ls = light.radiance
+    const s = hitRay.ray.start
+    const p = hitRay.point
+
+    switch (light.type) {
+      case 'ambient': {
+        return cd.scale(kd).mul(cl.scale(ls))
+      }
+      case 'directional': {
+        const l = light.location.sub(p).unit()
+        return cd
+          .scale(kd)
+          .scale(1 / 3.14)
+          .scale(Math.max(0, n.dot(l)))
+          .mul(cl.scale(ls))
+      }
+      case 'point': {
+        const w = s.sub(p).unit()
+        const l = light.location.sub(p).unit()
+
+        const diffuseAmount = Math.max(0, n.dot(l))
+        const diffuse = cd
+          .scale(kd)
+          .scale(1 / 3.14)
+          .scale(diffuseAmount)
+          .mul(cl.scale(ls))
+
+        const r = n.scale(2 * diffuseAmount).sub(l)
+        const specularAmount = r.dot(w)
+        const specular = cl.scale(ks * Math.pow(specularAmount, e) * diffuseAmount * ls)
+        return diffuse.add(specular)
       }
     }
   }

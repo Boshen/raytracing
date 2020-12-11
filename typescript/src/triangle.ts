@@ -1,14 +1,19 @@
 import { Ray, HitRay } from './ray'
-import { Vec3, Color } from './vec3'
+import { Vec3 } from './vec3'
+import { Material } from './material'
 
 export class Triangle {
-  constructor(
-    public v0: Vec3,
-    public v1: Vec3,
-    public v2: Vec3,
-    // public normal: Vec3,
-    public color: Color
-  ) {}
+  public normal: Vec3
+
+  constructor(public v0: Vec3, public v1: Vec3, public v2: Vec3, public material: Material) {
+    this.normal = this.getNormal()
+  }
+
+  getNormal() {
+    const e1 = this.v1.sub(this.v0)
+    const e2 = this.v2.sub(this.v0)
+    return e2.cross(e1).unit()
+  }
 
   // Möller–Trumbore intersection algorithm
   public intersects(ray: Ray): HitRay | null {
@@ -64,5 +69,7 @@ export class Triangle {
     this.v0.y = this.v0.y * -1
     this.v1.y = this.v1.y * -1
     this.v2.y = this.v2.y * -1
+
+    this.normal = this.getNormal()
   }
 }
