@@ -2,6 +2,11 @@
 # yarn lockfile v1
 
 
+esbuild@^0.8.21:
+  version "0.8.21"
+  resolved "https://registry.npm.taobao.org/esbuild/download/esbuild-0.8.21.tgz#c431f8af457795c2fecb1b2873cb8eaef4e5b53c"
+  integrity sha1-xDH4r0V3lcL+yxsoc8uOrvTltTw=
+
 typescript@^4.1.2:
   version "4.1.2"
   resolved "https://registry.npm.taobao.org/typescript/download/typescript-4.1.2.tgz?cache=0&sync_timestamp=1606805277614&other_urls=https%3A%2F%2Fregistry.npm.taobao.org%2Ftypescript%2Fdownload%2Ftypescript-4.1.2.tgz#6369ef22516fe5e10304aae5a5c4862db55380e9"

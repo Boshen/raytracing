@@ -1,13 +1,14 @@
 {
   "name": "raytracing",
   "version": "1.0.0",
-  "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "watch": "tsc --watch raytracing.ts",
-    "build": "tsc raytracing.ts"
+    "start": "yarn build --serve",
+    "watch": "tsc --watch --noEmit",
+    "build": "esbuild ./src/index.ts --outfile=index.js --bundle"
   },
   "devDependencies": {
+    "esbuild": "^0.8.21",
     "typescript": "^4.1.2"
   },
   "prettier": {
