@@ -1,4 +1,4 @@
-import { Vec3 } from './vec3'
+import { Vec3, Color } from './vec3'
 import { Ray, HitRay } from './ray'
 import { models } from './models'
 import { Canvas } from './canvas'
@@ -32,13 +32,13 @@ export class RayTracing {
         const y = j - this.height / 2
         const d = new Vec3(x, y, this.focalLength).unit()
         const ray = new Ray(this.camera, d)
-        const color = this.trace(ray)
+        const color = this.trace(ray, 0, this.background)
         this.canvas.addPixel(i, j, color.scale(255))
       }
     }
   }
 
-  trace(ray: Ray) {
+  trace(ray: Ray, depth: number, color: Color): Color {
     let minDistance = Infinity
     let hitModel: Triangle | null = null
     let hitRay: HitRay | null = null
@@ -60,7 +60,9 @@ export class RayTracing {
       .map((l) => this.calcShadeColor(hitModel!, hitRay!, l))
       .reduce((a, b) => a.add(b), this.background)
 
-    return shadeColor
+    const reflectionColor = this.calcReflectionColor(hitModel, ray, hitRay, depth, color)
+
+    return shadeColor.add(reflectionColor)
   }
 
   calcShadeColor(model: Triangle, hitRay: HitRay, light: Light) {
@@ -113,5 +115,22 @@ export class RayTracing {
         return diffuse.add(specular)
       }
     }
+  }
+
+   calcReflectionColor(item: Triangle, ray: Ray, rayHit: HitRay, depth: number, color: Color) {
+    if (depth > 3) {
+      return color
+    }
+    const reflection = item.material.reflection
+    if (reflection === 0) {
+      return color
+    }
+    const reflectDir = 2 * ray.direction.dot(item.normal)
+    const reflectRay = new Ray(
+      rayHit.point,
+      ray.direction.sub(item.normal.scale(reflectDir))
+    )
+    const reflectionColor = this.trace(reflectRay, depth + 1, color)
+    return reflectionColor.scale(reflection).add(color)
   }
 }

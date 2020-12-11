@@ -1,5 +1,6 @@
 import { Vec3, Color } from './vec3'
 import { Triangle } from './triangle'
+import { Material } from './material'
 
 const L = 555
 const z_front = -L // closed box for mirror effect
@@ -13,12 +14,20 @@ const m = (diffuseColor: Color, transparent: boolean = false) => ({
   transparent,
 })
 
+const n = (m: Material) => ({
+  ...m,
+  reflection: 0.2,
+  specularRefection: 0.2,
+  shininess: 10,
+})
+
 const red = m(new Vec3(0.75, 0.15, 0.15))
 const beige = m(new Vec3(0.85, 0.85, 0.7))
-const blue = m(new Vec3(0.05, 0.6, 1))
 const green = m(new Vec3(0.15, 0.75, 0.15))
-const orange = m(new Vec3(0.8, 0.7, 0.05))
 const transparent = m(new Vec3(1, 1, 1), true)
+
+const blue = n(m(new Vec3(0.05, 0.6, 1)))
+const orange = n(m(new Vec3(0.8, 0.7, 0.05)))
 
 let A = new Vec3(L, 0, z_front)
 let B = new Vec3(0, 0, z_front)
@@ -43,8 +52,8 @@ const walls = [
   new Triangle(G, D, C, beige),
   new Triangle(G, H, D, beige),
   // wall behind camera
-  // new Triangle(F, E, A, beige),
-  // new Triangle(F, A, B, beige),
+  new Triangle(F, E, A, beige),
+  new Triangle(F, A, B, beige),
 ]
 
 // ceiling with hole
