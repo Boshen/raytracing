@@ -65,13 +65,15 @@ export class RayTracing {
     let hitModel: HitModel | null = null
 
     models.forEach((m) => {
-      m.hittables.forEach((h) => {
-        const hit = h.intersects(ray)
-        if (hit && hit.distance < minDistance) {
-          minDistance = hit.distance
-          hitModel = { ...hit, model: m }
-        }
-      })
+      if (m.aabb.intersects(ray)) {
+        m.hittables.forEach((h) => {
+          const hit = h.intersects(ray)
+          if (hit && hit.distance < minDistance) {
+            minDistance = hit.distance
+            hitModel = { ...hit, model: m }
+          }
+        })
+      }
     })
 
     if (!hitModel) {

@@ -2,12 +2,16 @@ import { Ray, HitRay } from './ray'
 import { Vec3 } from './vec3'
 import { Material } from './material'
 import { stats } from './stats'
+import { AABB } from './aabb'
 
 export class Model {
-  constructor(public material: Material, public hittables: Hittable[]) {}
+  aabb: AABB = new AABB([])
+  constructor(public material: Material, public hittables: Hittable[]) {
+  }
 
   scale(L: number) {
     this.hittables.forEach((h) => h.scale(L))
+    this.aabb = new AABB(this.hittables)
   }
 }
 
@@ -15,6 +19,8 @@ export abstract class Hittable {
   abstract normal(p: Vec3): Vec3
   abstract intersects(ray: Ray): HitRay | null
   abstract scale(L: number): void
+  abstract getMinPoint(): Vec3
+  abstract getMaxPoint(): Vec3
 }
 
 export class Triangle extends Hittable {
@@ -33,6 +39,22 @@ export class Triangle extends Hittable {
     const e1 = this.v1.sub(this.v0)
     const e2 = this.v2.sub(this.v0)
     return e2.cross(e1).unit()
+  }
+
+  getMinPoint() {
+    return new Vec3(
+      Math.min(...[this.v0.x, this.v1.x, this.v2.x]),
+      Math.min(...[this.v0.y, this.v1.y, this.v2.y]),
+      Math.min(...[this.v0.z, this.v1.z, this.v2.z]),
+    )
+  }
+
+  getMaxPoint() {
+    return new Vec3(
+      Math.max(...[this.v0.x, this.v1.x, this.v2.x]),
+      Math.max(...[this.v0.y, this.v1.y, this.v2.y]),
+      Math.max(...[this.v0.z, this.v1.z, this.v2.z]),
+    )
   }
 
   // Möller–Trumbore intersection algorithm
@@ -106,6 +128,14 @@ export class Sphere extends Hittable {
       .sub(this.center)
       .scale(1 / this.radius)
       .unit()
+  }
+
+  getMinPoint() {
+    return this.center.translate(-this.radius)
+  }
+
+  getMaxPoint() {
+    return this.center.translate(this.radius)
   }
 
   intersects(ray: Ray) {

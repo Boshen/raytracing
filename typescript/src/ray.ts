@@ -13,7 +13,11 @@ export interface HitModel extends HitRay {
 }
 
 export class Ray {
-  constructor(public start: Vec3, public direction: Vec3) {}
+  inverseDirection: Vec3
+
+  constructor(public start: Vec3, public direction: Vec3) {
+    this.inverseDirection = new Vec3(1 / direction.x, 1 / direction.y, 1 / direction.z)
+  }
 
   getPoint(distance: number): Vec3 {
     return this.start.add(this.direction.scale(distance))
