@@ -3,6 +3,7 @@ import { Ray, HitRay } from './ray'
 import { models } from './models'
 import { Canvas } from './canvas'
 import { Light, AmbientLight, DirectionalLight, PointLight } from './light'
+import { stats } from './stats'
 
 export class RayTracing {
   camera = new Vec3(0, 0, -3)
@@ -27,6 +28,7 @@ export class RayTracing {
   }
 
   algorithm() {
+    const startTime = new Date()
     const toRGB = (c: number) => Math.max(0, Math.round(Math.min(255, c * 255)))
     Array.from({ length: this.width }).forEach((_, i) => {
       Array.from({ length: this.height }).forEach((_, j) => {
@@ -36,6 +38,7 @@ export class RayTracing {
         this.canvas.addPixel(i, j, new Vec3(toRGB(color.x), toRGB(color.y), toRGB(color.z)))
       })
     })
+    stats.duration = (+new Date() - +startTime) / 1000
   }
 
   antialias(x: number, y: number) {

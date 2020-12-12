@@ -1,6 +1,7 @@
 import { Ray, HitRay } from './ray'
 import { Vec3 } from './vec3'
 import { Material } from './material'
+import {stats}  from './stats'
 
 export abstract class Model {
   abstract normal(p: Vec3): Vec3
@@ -28,7 +29,9 @@ export class Triangle extends Model {
   }
 
   // Möller–Trumbore intersection algorithm
-  public intersects(ray: Ray): HitRay | null {
+  intersects(ray: Ray): HitRay | null {
+    stats.intersectionCount += 1
+
     const EPSILON = 0.000001
     const e1 = this.v1.sub(this.v0)
     const e2 = this.v2.sub(this.v0)
@@ -99,6 +102,8 @@ export class Sphere extends Model {
   }
 
   intersects(ray: Ray) {
+    stats.intersectionCount += 1
+
     const center = this.center
     const radius = this.radius
     const start = ray.start
