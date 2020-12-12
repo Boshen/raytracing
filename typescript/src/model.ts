@@ -87,55 +87,61 @@ export class Triangle extends Model {
 }
 
 export class Sphere extends Model {
-  constructor(
-    public center: Vec3,
-    public radius: number,
-    public material: Material
-  ) {
+  constructor(public center: Vec3, public radius: number, public material: Material) {
     super()
   }
 
   normal(p: Vec3) {
-    return p.sub(this.center).scale(1 / this.radius).unit()
+    return p
+      .sub(this.center)
+      .scale(1 / this.radius)
+      .unit()
   }
 
   intersects(ray: Ray) {
     const center = this.center
     const radius = this.radius
     const start = ray.start
-    const dx = ray.direction.x;
-    const dy = ray.direction.y;
-    const dz = ray.direction.z;
+    const dx = ray.direction.x
+    const dy = ray.direction.y
+    const dz = ray.direction.z
 
-    const a = dx*dx + dy*dy + dz*dz;
-    const b = 2 * dx*(start.x - center.x) + 2 * dy*(start.y - center.y) + 2 * dz*(start.z - center.z);
-    const c = center.x*center.x + center.y*center.y + center.z*center.z + start.x*start.x + start.y*start.y + start.z*start.z
-    - 2 * (center.x*start.x + center.y*start.y + center.z*start.z) - radius*radius;
+    const a = dx * dx + dy * dy + dz * dz
+    const b = 2 * dx * (start.x - center.x) + 2 * dy * (start.y - center.y) + 2 * dz * (start.z - center.z)
+    const c =
+      center.x * center.x +
+      center.y * center.y +
+      center.z * center.z +
+      start.x * start.x +
+      start.y * start.y +
+      start.z * start.z -
+      2 * (center.x * start.x + center.y * start.y + center.z * start.z) -
+      radius * radius
 
-    const disc = b*b - 4 * a*c;
+    const disc = b * b - 4 * a * c
 
     if (disc < 0) {
-      return null;
+      return null
     }
 
-    const t = (-b - Math.sqrt(disc)) / (2 * a);
+    const t = (-b - Math.sqrt(disc)) / (2 * a)
     if (t < 0) {
-      return null;
+      return null
     }
 
     return {
       ray,
       point: ray.getPoint(t),
       model: this,
-      distance: t
+      distance: t,
     }
   }
 
   scale(L: number) {
-    this.center = this.center.scale(2 / L);
+    this.center = this.center.scale(2 / L)
     this.center = this.center.sub(new Vec3(1, 1, 1))
     this.center.x = -this.center.x
     this.center.y = -this.center.y
-    this.radius = this.radius * 2 / L;
+    this.radius = (this.radius * 2) / L
   }
 }

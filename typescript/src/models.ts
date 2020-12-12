@@ -83,10 +83,7 @@ models = models.concat([
 ])
 
 // light hole
-models = models.concat([
-  new Triangle(L2, K, I, transparent),
-  new Triangle(L2, I, J, transparent),
-])
+models = models.concat([new Triangle(L2, K, I, transparent), new Triangle(L2, I, J, transparent)])
 
 // frame around light
 const lightBoxHeight = 5
@@ -152,8 +149,6 @@ models = models.concat([
 ])
 
 // sphere
-models = models.concat([
-  new Sphere(new Vec3(200, 165 + 40, 120), 40, sphereMaterial)
-])
+models = models.concat([new Sphere(new Vec3(200, 165 + 40, 120), 40, sphereMaterial)])
 
 models.forEach((o) => o.scale(L))
