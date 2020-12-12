@@ -1,12 +1,12 @@
 import { Color, Vec3 } from './vec3'
-import { Ray, HitRay } from './ray'
+import { Ray, HitModel } from './ray'
 import { models } from './models'
 
 export abstract class Light {
   abstract radiance: number
   abstract color: Color
   abstract location: Vec3
-  abstract shade(hitRay: HitRay): Color
+  abstract shade(hitRay: HitModel): Color
 }
 
 export class AmbientLight extends Light {
@@ -16,7 +16,7 @@ export class AmbientLight extends Light {
     super()
   }
 
-  shade({ model }: HitRay) {
+  shade({ model }: HitModel) {
     const kd = model.material.diffuseReflection
     const cd = model.material.diffuseColor
     const cl = this.color
@@ -30,11 +30,11 @@ export class DirectionalLight extends Light {
     super()
   }
 
-  shade({ model, point }: HitRay) {
+  shade({ model, hittable, point }: HitModel) {
     const l = this.location.sub(point).unit()
     const kd = model.material.diffuseReflection
     const cd = model.material.diffuseColor
-    const n = model.normal(point)
+    const n = hittable.normal(point)
     const cl = this.color
     const ls = this.radiance
     return cd
@@ -50,26 +50,19 @@ export class PointLight extends Light {
     super()
   }
 
-  shade({ model, point, ray }: HitRay) {
+  shade(hitModel: HitModel) {
+    const { model, hittable, point, ray } = hitModel
     const w = ray.start.sub(point).unit()
     const l = this.location.sub(point).unit()
     const kd = model.material.diffuseReflection
     const cd = model.material.diffuseColor
     const ks = model.material.specularRefection
     const e = model.material.shininess
-    const n = model.normal(point)
+    const n = hittable.normal(point)
     const cl = this.color
     const ls = this.radiance
 
-    // shadow
-    const shadowRay = new Ray(point.add(l.scale(0.00001)), l)
-    const inShadow =
-      n.dot(w) > 0 &&
-      models
-        .filter((s) => s != model)
-        .filter((s) => !s.material.transparent)
-        .some((s) => !!s.intersects(shadowRay))
-    if (inShadow) {
+    if (n.dot(w) > 0 && this.isInShadow(l, hitModel)) {
       return new Vec3(0, 0, 0)
     }
 
@@ -86,5 +79,19 @@ export class PointLight extends Light {
     const specularAmount = r.dot(w)
     const specular = cl.scale(ks * Math.pow(specularAmount, e) * diffuseAmount * ls)
     return diffuse.add(specular)
+  }
+
+  isInShadow(l: Vec3, { hittable, point }: HitModel) {
+    const shadowRay = new Ray(point.add(l.scale(0.00001)), l)
+    for (let m of models) {
+      if (!m.material.transparent) {
+        for (let h of m.hittables) {
+          if (h != hittable && h.intersects(shadowRay)) {
+            return true
+          }
+        }
+      }
+    }
+    return false
   }
 }

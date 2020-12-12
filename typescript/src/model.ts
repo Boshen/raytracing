@@ -1,19 +1,26 @@
 import { Ray, HitRay } from './ray'
 import { Vec3 } from './vec3'
 import { Material } from './material'
-import {stats}  from './stats'
+import { stats } from './stats'
 
-export abstract class Model {
+export class Model {
+  constructor(public material: Material, public hittables: Hittable[]) {}
+
+  scale(L: number) {
+    this.hittables.forEach((h) => h.scale(L))
+  }
+}
+
+export abstract class Hittable {
   abstract normal(p: Vec3): Vec3
-  abstract material: Material
   abstract intersects(ray: Ray): HitRay | null
   abstract scale(L: number): void
 }
 
-export class Triangle extends Model {
+export class Triangle extends Hittable {
   private _normal: Vec3
 
-  constructor(public v0: Vec3, public v1: Vec3, public v2: Vec3, public material: Material) {
+  constructor(public v0: Vec3, public v1: Vec3, public v2: Vec3) {
     super()
     this._normal = this.computeNormal()
   }
@@ -64,7 +71,7 @@ export class Triangle extends Model {
     return {
       ray,
       point: ray.getPoint(t),
-      model: this,
+      hittable: this,
       distance: t,
     }
   }
@@ -89,8 +96,8 @@ export class Triangle extends Model {
   }
 }
 
-export class Sphere extends Model {
-  constructor(public center: Vec3, public radius: number, public material: Material) {
+export class Sphere extends Hittable {
+  constructor(public center: Vec3, public radius: number) {
     super()
   }
 
@@ -137,7 +144,7 @@ export class Sphere extends Model {
     return {
       ray,
       point: ray.getPoint(t),
-      model: this,
+      hittable: this,
       distance: t,
     }
   }

@@ -1,5 +1,5 @@
 import { Vec3, Color } from './vec3'
-import { Ray, HitRay } from './ray'
+import { Ray, HitRay, HitModel } from './ray'
 import { models } from './models'
 import { Canvas } from './canvas'
 import { Light, AmbientLight, DirectionalLight, PointLight } from './light'
@@ -62,27 +62,29 @@ export class RayTracing {
 
   trace(ray: Ray, depth: number, color: Color): Color {
     let minDistance = Infinity
-    let hitRay: HitRay | null = null
+    let hitModel: HitModel | null = null
 
     models.forEach((m) => {
-      const hit = m.intersects(ray)
-      if (hit && hit.distance < minDistance) {
-        minDistance = hit.distance
-        hitRay = hit
-      }
+      m.hittables.forEach((h) => {
+        const hit = h.intersects(ray)
+        if (hit && hit.distance < minDistance) {
+          minDistance = hit.distance
+          hitModel = { ...hit, model: m }
+        }
+      })
     })
 
-    if (!hitRay) {
+    if (!hitModel) {
       return this.background
     }
 
-    const shadeColor = this.lights.map((l) => l.shade(hitRay!)).reduce((a, b) => a.add(b), this.background)
+    const shadeColor = this.lights.map((l) => l.shade(hitModel!)).reduce((a, b) => a.add(b), this.background)
 
-    const reflectionColor = this.calcReflectionColor(hitRay, ray, depth, color)
+    const reflectionColor = this.calcReflectionColor(hitModel, ray, depth, color)
     return shadeColor.add(reflectionColor)
   }
 
-  calcReflectionColor({ model, point }: HitRay, ray: Ray, depth: number, color: Color) {
+  calcReflectionColor({ model, hittable, point }: HitModel, ray: Ray, depth: number, color: Color) {
     if (depth > 3) {
       return color
     }
@@ -90,7 +92,7 @@ export class RayTracing {
     if (reflection === 0) {
       return color
     }
-    const normal = model.normal(point)
+    const normal = hittable.normal(point)
     const reflectDir = 2 * ray.direction.dot(normal)
     const reflectRay = new Ray(point, ray.direction.sub(normal.scale(reflectDir)))
     const reflectionColor = this.trace(reflectRay, depth + 1, color)

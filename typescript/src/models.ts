@@ -34,23 +34,21 @@ let F = new Vec3(0, L, z_front)
 let G = new Vec3(L, L, L)
 let H = new Vec3(0, L, L)
 
-models = models.concat([
-  // floor
-  new Triangle(C, B, A, wallBeige),
-  new Triangle(C, D, B, wallBeige),
-  // left
-  new Triangle(A, E, C, wallRed),
-  new Triangle(C, E, G, wallRed),
-  // right
-  new Triangle(F, B, D, wallGreen),
-  new Triangle(H, F, D, wallGreen),
-  // front wall
-  new Triangle(G, D, C, wallBeige),
-  new Triangle(G, H, D, wallBeige),
-  // wall behind camera
-  // new Triangle(F, E, A, wallBeige),
-  // new Triangle(F, A, B, wallBeige),
-])
+// floor
+models.push(new Model(wallBeige, [new Triangle(C, B, A), new Triangle(C, D, B)]))
+
+// left
+models.push(new Model(wallRed, [new Triangle(A, E, C), new Triangle(C, E, G)]))
+
+// right
+models.push(new Model(wallGreen, [new Triangle(F, B, D), new Triangle(H, F, D)]))
+
+// front wall
+models.push(new Model(wallBeige, [new Triangle(G, D, C), new Triangle(G, H, D)]))
+
+// wall behind camera
+// new Triangle(F, E, A, wallBeige),
+// new Triangle(F, A, B, wallBeige),
 
 // ceiling with hole
 const holeRadius = 75
@@ -68,22 +66,24 @@ G = new Vec3(L + 5, L, L + 5)
 H = new Vec3(-5, L, L + 5)
 
 // ceiling
-models = models.concat([
-  new Triangle(E, M, G, wallBeige),
-  new Triangle(M, O, G, wallBeige),
-  new Triangle(M, N, I, wallBeige),
-  new Triangle(N, J, I, wallBeige),
-  new Triangle(N, F, P, wallBeige),
-  new Triangle(F, H, P, wallBeige),
-  new Triangle(K, L2, O, wallBeige),
-  new Triangle(L2, P, O, wallBeige),
-  // full ceiling
-  // new Triangle(E, F, G, wallBeige),
-  // new Triangle(F, H, G, wallBeige),
-])
+models.push(
+  new Model(wallBeige, [
+    new Triangle(E, M, G),
+    new Triangle(M, O, G),
+    new Triangle(M, N, I),
+    new Triangle(N, J, I),
+    new Triangle(N, F, P),
+    new Triangle(F, H, P),
+    new Triangle(K, L2, O),
+    new Triangle(L2, P, O),
+    // full ceiling
+    // new Triangle(E, F, G, wallBeige),
+    // new Triangle(F, H, G, wallBeige),
+  ])
+)
 
 // light hole
-models = models.concat([new Triangle(L2, K, I, transparent), new Triangle(L2, I, J, transparent)])
+models.push(new Model(transparent, [new Triangle(L2, K, I), new Triangle(L2, I, J)]))
 
 // frame around light
 const lightBoxHeight = 5
@@ -91,16 +91,18 @@ M = new Vec3(L / 2 + holeRadius, L - lightBoxHeight, L / 2 - holeRadius)
 N = new Vec3(L / 2 - holeRadius, L - lightBoxHeight, L / 2 - holeRadius)
 O = new Vec3(L / 2 + holeRadius, L - lightBoxHeight, L / 2 + holeRadius)
 P = new Vec3(L / 2 - holeRadius, L - lightBoxHeight, L / 2 + holeRadius)
-models = models.concat([
-  new Triangle(I, J, M, transparent),
-  new Triangle(J, N, M, transparent),
-  new Triangle(J, L2, N, transparent),
-  new Triangle(L2, P, N, transparent),
-  new Triangle(L2, K, O, transparent),
-  new Triangle(L2, O, P, transparent),
-  new Triangle(I, M, O, transparent),
-  new Triangle(K, I, O, transparent),
-])
+models.push(
+  new Model(transparent, [
+    new Triangle(I, J, M),
+    new Triangle(J, N, M),
+    new Triangle(J, L2, N),
+    new Triangle(L2, P, N),
+    new Triangle(L2, K, O),
+    new Triangle(L2, O, P),
+    new Triangle(I, M, O),
+    new Triangle(K, I, O),
+  ])
+)
 
 // short block
 A = new Vec3(290, 0, 114)
@@ -112,18 +114,20 @@ F = new Vec3(130, 165, 65)
 G = new Vec3(240, 165, 272)
 H = new Vec3(82, 165, 225)
 
-models = models.concat([
-  new Triangle(E, B, A, blockBlue),
-  new Triangle(E, F, B, blockBlue),
-  new Triangle(F, D, B, blockBlue),
-  new Triangle(F, H, D, blockBlue),
-  new Triangle(H, C, D, blockBlue),
-  new Triangle(H, G, C, blockBlue),
-  new Triangle(G, E, C, blockBlue),
-  new Triangle(E, A, C, blockBlue),
-  new Triangle(G, F, E, blockBlue),
-  new Triangle(G, H, F, blockBlue),
-])
+models.push(
+  new Model(blockBlue, [
+    new Triangle(E, B, A),
+    new Triangle(E, F, B),
+    new Triangle(F, D, B),
+    new Triangle(F, H, D),
+    new Triangle(H, C, D),
+    new Triangle(H, G, C),
+    new Triangle(G, E, C),
+    new Triangle(E, A, C),
+    new Triangle(G, F, E),
+    new Triangle(G, H, F),
+  ])
+)
 
 // tall block
 A = new Vec3(423, 0, 247)
@@ -135,20 +139,22 @@ F = new Vec3(265, 330, 296)
 G = new Vec3(472, 330, 406)
 H = new Vec3(314, 330, 456)
 
-models = models.concat([
-  new Triangle(E, B, A, blockOrange),
-  new Triangle(E, F, B, blockOrange),
-  new Triangle(F, D, B, blockOrange),
-  new Triangle(F, H, D, blockOrange),
-  new Triangle(H, C, D, blockOrange),
-  new Triangle(H, G, C, blockOrange),
-  new Triangle(G, E, C, blockOrange),
-  new Triangle(E, A, C, blockOrange),
-  new Triangle(G, F, E, blockOrange),
-  new Triangle(G, H, F, blockOrange),
-])
+models.push(
+  new Model(blockOrange, [
+    new Triangle(E, B, A),
+    new Triangle(E, F, B),
+    new Triangle(F, D, B),
+    new Triangle(F, H, D),
+    new Triangle(H, C, D),
+    new Triangle(H, G, C),
+    new Triangle(G, E, C),
+    new Triangle(E, A, C),
+    new Triangle(G, F, E),
+    new Triangle(G, H, F),
+  ])
+)
 
 // sphere
-models = models.concat([new Sphere(new Vec3(200, 165 + 40, 120), 40, sphereMaterial)])
+models.push(new Model(sphereMaterial, [new Sphere(new Vec3(200, 165 + 40, 120), 40)]))
 
-models.forEach((o) => o.scale(L))
+models.forEach((m) => m.scale(L))

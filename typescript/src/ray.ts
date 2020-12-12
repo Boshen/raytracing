@@ -1,11 +1,15 @@
 import { Vec3 } from './vec3'
-import { Model } from './model'
+import { Model, Hittable } from './model'
 
 export interface HitRay {
   ray: Ray
   point: Vec3
-  model: Model
+  hittable: Hittable
   distance: number
+}
+
+export interface HitModel extends HitRay {
+  model: Model
 }
 
 export class Ray {
