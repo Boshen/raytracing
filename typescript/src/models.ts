@@ -17,7 +17,8 @@ const defaultMetarial: Material = {
 const wallBeige = { ...defaultMetarial, diffuseColor: new Vec3(0.85, 0.85, 0.7) }
 const wallRed = { ...defaultMetarial, diffuseColor: new Vec3(0.75, 0.15, 0.15) }
 const wallGreen = { ...defaultMetarial, diffuseColor: new Vec3(0.15, 0.75, 0.15) }
-const transparent = { ...defaultMetarial, diffuseColor: new Vec3(1, 1, 1), transparent: true }
+const lightMaterial = { ...defaultMetarial, diffuseColor: new Vec3(1, 1, 1), diffuseReflection: 10, transparent: true }
+const lightBoxMaterial = { ...defaultMetarial, diffuseColor: new Vec3(0.2, 0.2, 0.2), diffuseReflection: 5, transparent: true }
 const blockBlue = { ...defaultMetarial, diffuseColor: new Vec3(0.05, 0.6, 1) }
 const blockOrange = { ...defaultMetarial, diffuseColor: new Vec3(0.8, 0.7, 0.05) }
 const sphereMaterial = { ...defaultMetarial, diffuseReflection: 0, reflection: 1, specularRefection: 1, shininess: 5 }
@@ -83,7 +84,7 @@ models.push(
 )
 
 // light hole
-models.push(new Model(transparent, [new Triangle(L2, K, I), new Triangle(L2, I, J)]))
+models.push(new Model(lightMaterial, [new Triangle(L2, K, I), new Triangle(L2, I, J)]))
 
 // frame around light
 const lightBoxHeight = 5
@@ -92,7 +93,7 @@ N = new Vec3(L / 2 - holeRadius, L - lightBoxHeight, L / 2 - holeRadius)
 O = new Vec3(L / 2 + holeRadius, L - lightBoxHeight, L / 2 + holeRadius)
 P = new Vec3(L / 2 - holeRadius, L - lightBoxHeight, L / 2 + holeRadius)
 models.push(
-  new Model(transparent, [
+  new Model(lightBoxMaterial, [
     new Triangle(I, J, M),
     new Triangle(J, N, M),
     new Triangle(J, L2, N),
