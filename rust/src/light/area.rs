@@ -18,7 +18,7 @@ pub struct AreaLight {
 impl Light for AreaLight {
     fn radiance(&self, hit: &RayHit) -> Color {
         let shadow_amount = self.intensity_at(&hit);
-        return self.cl.mul(self.ls).mul(shadow_amount);
+        return self.cl.mul(self.ls); //.mul(shadow_amount);
     }
 
     fn get_direction(&self, hit: &RayHit) -> Vec3 {
@@ -30,15 +30,17 @@ impl AreaLight {
     fn intensity_at(&self, hit: &RayHit) -> f64 {
         let x = self.location.x - self.width / 2.0;
         let z = self.location.z - self.height / 2.0;
+        println!("-{:?}", self.location);
         return get_unit_square_sampler(self.sample_points_sqrt)
             .map(|(dx, dz)| {
                 let new_location =
-                    Vec3::new(x + dx * self.width, self.location.y, z + dz * self.width);
+                    Vec3::new(x + dx * self.width, self.location.y, z + dz * self.height);
+                // println!(" --{:?}", new_location);
                 let dir = new_location.sub(hit.hit_point).normalize();
                 return if hit.world.is_in_shadow(&hit.hit_point, &dir) {
-                    0.0
-                } else {
                     1.0
+                } else {
+                    0.0
                 };
             })
             .sum::<f64>()

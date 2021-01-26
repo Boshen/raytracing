@@ -25,30 +25,55 @@ fn main() -> io::Result<()> {
     let asset = Asset::new("../assets/cornell_box.obj");
 
     let ambient_light = Box::new(AmbientLight {
-        ls: 0.1,
+        ls: 0.2,
         cl: Vec3::new(1.0, 1.0, 1.0),
     });
 
     let lights: Vec<Box<dyn Light>> = vec![
-        Box::new(AmbientOcculuder {
+        // Box::new(AmbientOcculuder {
+        // ls: 1.0,
+        // cl: Vec3::new(1.0, 1.0, 1.0),
+        // sample_points_sqrt: 16,
+        // }),
+        // Box::new(DirectionalLight {
+        // ls: 1.0,
+        // cl: Vec3::new(1.0, 1.0, 1.0),
+        // direction: Vec3::new(1.0, 1.0, 0.0),
+        // }),
+        // Box::new(PointLight {
+        // ls: 10.0,
+        // cl: Vec3::new(1.0, 1.0, 1.0),
+        // location: Vec3::new(0.0, 0.97, 0.0),
+        // }),
+        Box::new(AreaLight {
             ls: 1.0,
             cl: Vec3::new(1.0, 1.0, 1.0),
-            sample_points_sqrt: 16,
-        }),
-        Box::new(DirectionalLight {
-            ls: 1.0,
-            cl: Vec3::new(1.0, 1.0, 1.0),
-            direction: Vec3::new(0.0, 1.0, 0.0),
-        }),
-        Box::new(PointLight {
-            ls: 1.0,
-            cl: Vec3::new(1.0, 1.0, 1.0),
-            location: Vec3::new(0.0, -1.0, 0.0),
+            location: Vec3::new(0.5, -0.5, 0.5),
+            width: 75.0 / 255.0,
+            height: 75.0 / 255.0,
+            sample_points_sqrt: 5,
         }),
         Box::new(AreaLight {
-            ls: 2.0,
+            ls: 1.0,
             cl: Vec3::new(1.0, 1.0, 1.0),
-            location: Vec3::new(278.0, 548.5, 279.5),
+            location: Vec3::new(0.5, 0.5, 0.5),
+            width: 75.0 / 255.0,
+            height: 75.0 / 255.0,
+            sample_points_sqrt: 5,
+        }),
+        Box::new(AreaLight {
+            ls: 1.0,
+            cl: Vec3::new(1.0, 1.0, 1.0),
+            location: Vec3::new(0.5, -0.5, -0.5),
+            width: 75.0 / 255.0,
+            height: 75.0 / 255.0,
+            sample_points_sqrt: 5,
+        }),
+        Box::new(AreaLight {
+            ls: 5.0,
+            cl: Vec3::new(1.0, 1.0, 1.0),
+            location: Vec3::new(0.0, 0.97, 0.0),
+            // location: Vec3::new(0.0, 0.97, 0.5),
             width: 75.0 / 255.0,
             height: 75.0 / 255.0,
             sample_points_sqrt: 5,
@@ -63,12 +88,13 @@ fn main() -> io::Result<()> {
         ambient_light,
     };
 
-    // let camera = Camera::new(Vec3::new(0.0, 0.0, -3.0), Vec3::new(0.0, 0.0, 0.0), 500.0);
+    let camera = Camera::new(Vec3::new(0.0, 0.0, -3.0), Vec3::new(0.0, 0.0, 0.0), 512.0);
 
-    let camera = Camera::new(
-        Vec3::new(278.0, 273.0, -500.0),
-        Vec3::new(278.0, 273.0, 0.0),
-    );
+    // let camera = Camera::new(
+    // Vec3::new(278.0 / 277.5, 273.0 / 277.5, -3.0),
+    // Vec3::new(0.0, 0.0, 0.0),
+    // 500.0,
+    // );
 
     let mut image = RgbImage::new(world.width, world.height);
     camera

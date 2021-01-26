@@ -89,12 +89,13 @@ impl Material {
                 }
                 // wo: reflected direction
                 let wo = hit.ray.dir.mul(-1.0).normalize();
-                return self
+                let c = self
                     .diffuse_color(hit, &wo, &wi)
                     .add(self.specular_color(hit, &wo, &wi))
                     .mul(light.radiance(hit))
                     .mul(ndotwi)
                     .add(self.reflective_color(hit, &wo));
+                return c;
             })
             .fold(ambient_color, |a, b| a.add(b));
     }
