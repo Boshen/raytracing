@@ -64,7 +64,11 @@ impl GeometricObject for BvhNode {
 impl BvhNode {
     pub fn new(objects: &mut Vec<Geometry>, start: usize, end: usize) -> BvhNode {
         let axis = thread_rng().gen_range(0, 3);
-        let comparator = box_compare(axis);
+        let comparator = move |a: &Geometry, b: &Geometry| {
+            let box_a = a.get_bounding_box();
+            let box_b = b.get_bounding_box();
+            box_a.min[axis].partial_cmp(&box_b.min[axis]).unwrap()
+        };
 
         let span = end - start;
         if span == 1 {
@@ -90,12 +94,4 @@ impl BvhNode {
             }
         }
     }
-}
-
-fn box_compare(axis: usize) -> Box<dyn Fn(&Geometry, &Geometry) -> std::cmp::Ordering> {
-    Box::new(move |a, b| {
-        let box_a = a.get_bounding_box();
-        let box_b = b.get_bounding_box();
-        box_a.min[axis].partial_cmp(&box_b.min[axis]).unwrap()
-    })
 }
