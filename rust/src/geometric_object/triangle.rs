@@ -69,13 +69,13 @@ impl GeometricObject for Triangle {
     }
 
     fn scale(&mut self, l: f64) {
-        self.x = self.x * (2.0 / l);
-        self.y = self.y * (2.0 / l);
-        self.z = self.z * (2.0 / l);
+        self.x *= 2.0 / l;
+        self.y *= 2.0 / l;
+        self.z *= 2.0 / l;
 
-        self.x = self.x - Vec3::new(1.0, 1.0, 1.0);
-        self.y = self.y - Vec3::new(1.0, 1.0, 1.0);
-        self.z = self.z - Vec3::new(1.0, 1.0, 1.0);
+        self.x -= Vec3::new(1.0, 1.0, 1.0);
+        self.y -= Vec3::new(1.0, 1.0, 1.0);
+        self.z -= Vec3::new(1.0, 1.0, 1.0);
 
         self.x.x = -self.x.x;
         self.y.x = -self.y.x;

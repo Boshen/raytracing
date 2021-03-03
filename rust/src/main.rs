@@ -49,7 +49,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let world = World {
         vp,
-        hittable: BvhNode::new(&mut asset.geometries),
+        hittable: BvhNode::create(&mut asset.geometries),
         lights: lights
             .into_iter()
             .chain(asset.lights.into_iter())

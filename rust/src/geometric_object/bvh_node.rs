@@ -60,8 +60,9 @@ impl GeometricObject for BvhNode {
 }
 
 impl BvhNode {
-    pub fn new(objects: &mut Vec<Box<dyn GeometricObject>>) -> Box<dyn GeometricObject> {
+    pub fn create(objects: &mut Vec<Box<dyn GeometricObject>>) -> Box<dyn GeometricObject> {
         let axis = thread_rng().gen_range(0, 3);
+        #[allow(clippy::borrowed_box)]
         let comparator = move |a: &Box<dyn GeometricObject>, b: &Box<dyn GeometricObject>| {
             let box_a = a.get_bounding_box();
             let box_b = b.get_bounding_box();
@@ -74,8 +75,8 @@ impl BvhNode {
             objects.sort_by(comparator);
             let mid = objects.len() / 2.0 as usize;
             let mut v2 = objects.split_off(mid);
-            let left = BvhNode::new(objects);
-            let right = BvhNode::new(&mut v2);
+            let left = BvhNode::create(objects);
+            let right = BvhNode::create(&mut v2);
             let box_left = left.get_bounding_box();
             let box_right = right.get_bounding_box();
             Box::new(BvhNode {
