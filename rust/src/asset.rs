@@ -3,8 +3,8 @@ use std::collections::HashMap;
 
 use crate::brdf::{GlossySpecular, Lambertian, PerfectSpecular};
 use crate::color::Color;
-use crate::geometric_object::{Geometry, Sphere, Triangle};
-use crate::light::{AreaLight, LightEnum};
+use crate::geometric_object::{GeometricObject, Sphere, Triangle};
+use crate::light::{AreaLight, Light};
 use crate::material::{Emissive, Material, Matte, Reflective};
 use crate::model::Vec3;
 
@@ -16,8 +16,8 @@ pub struct Object {
 
 pub struct Asset {
     pub objects: Vec<Object>,
-    pub geometries: Vec<Geometry>,
-    pub lights: Vec<LightEnum>,
+    pub geometries: Vec<Box<dyn GeometricObject>>,
+    pub lights: Vec<Box<dyn Light>>,
     pub materials: HashMap<usize, Box<Material>>,
 }
 
@@ -45,7 +45,7 @@ impl Asset {
                 ));
             }
 
-            let mut triangles: Vec<Geometry> = vec![];
+            let mut triangles: Vec<Box<dyn GeometricObject>> = vec![];
 
             match mesh.material_id {
                 None => {}
@@ -88,15 +88,15 @@ impl Asset {
                             vertices[*face_indices[2] as usize],
                             scale,
                         );
-                        triangles.push(Geometry::from(triangle));
-                        asset.geometries.push(Geometry::from(triangle2));
+                        triangles.push(Box::new(triangle));
+                        asset.geometries.push(Box::new(triangle2));
                         next_face = end;
                     }
 
                     if m.ambient[0] > 1.0 {
                         let emissive = Emissive::new(m.ambient[0] as f64, diffuse);
                         let arealight = AreaLight::new(triangles, emissive);
-                        asset.lights.push(LightEnum::from(arealight));
+                        asset.lights.push(Box::new(arealight));
                     }
 
                     asset.materials.insert(material_id, Box::new(material));
@@ -111,7 +111,7 @@ impl Asset {
             PerfectSpecular::new(0.5, Color::new(1.0, 1.0, 1.0)),
         ));
         let material_id = 1000 as usize;
-        asset.geometries.push(Geometry::from(Sphere::new(
+        asset.geometries.push(Box::new(Sphere::new(
             material_id,
             40.0,
             Vec3::new(400.0, 40.0, 500.0),

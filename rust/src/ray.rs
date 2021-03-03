@@ -16,6 +16,7 @@ impl Ray {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct HitRecord {
     pub dist: f64,
     pub hit_point: Vec3,

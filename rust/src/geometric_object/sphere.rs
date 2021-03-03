@@ -8,7 +8,6 @@ use crate::geometric_object::GeometricObject;
 use crate::model::Vec3;
 use crate::ray::{HitRecord, Ray};
 
-#[derive(Clone)]
 pub struct Sphere {
     radius: f64,
     center: Vec3,

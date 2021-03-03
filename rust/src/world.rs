@@ -3,8 +3,8 @@ use num_traits::identities::Zero;
 use std::{collections::HashMap, f64::INFINITY};
 
 use crate::color::Color;
-use crate::geometric_object::{BvhNode, GeometricObject};
-use crate::light::{AmbientLight, LightEnum};
+use crate::geometric_object::GeometricObject;
+use crate::light::{AmbientLight, Light};
 use crate::material::Material;
 use crate::model::Vec3;
 use crate::ray::{Ray, RayHit};
@@ -12,8 +12,8 @@ use crate::view_plane::ViewPlane;
 
 pub struct World {
     pub vp: ViewPlane,
-    pub lights: Vec<LightEnum>,
-    pub bvh: BvhNode,
+    pub lights: Vec<Box<dyn Light>>,
+    pub hittable: Box<dyn GeometricObject>,
     pub ambient_light: AmbientLight,
     pub materials: HashMap<usize, Box<Material>>,
 }
@@ -23,7 +23,7 @@ impl World {
         if depth >= 15 {
             return Color::zero();
         }
-        self.bvh
+        self.hittable
             .intersects(ray, 0.0, INFINITY)
             .map_or(Color::zero(), |record| {
                 let wo = (-1.0 * ray.dir).normalize();
@@ -43,7 +43,7 @@ impl World {
 
     pub fn is_in_shadow(&self, point: &Vec3, dir: &Vec3, t_max: f64) -> bool {
         let shadow_ray = Ray::new(point + 0.00001 * dir, *dir);
-        self.bvh
+        self.hittable
             .intersects(&shadow_ray, 0.0, t_max)
             .filter(|record| {
                 !matches!(self.get_material(record.material_id), Material::Emissive(_))

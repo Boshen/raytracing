@@ -1,5 +1,8 @@
 start:
-	cargo watch -x run
+	cargo watch -c -x run
+
+watch:
+	cargo watch -c -x build
 
 build:
 	cargo build --release

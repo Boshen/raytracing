@@ -4,16 +4,12 @@ use rand::{thread_rng, Rng};
 
 use crate::aabb::AABB;
 use crate::geometric_object::GeometricObject;
-use crate::geometric_object::Geometry;
 use crate::model::Vec3;
 use crate::ray::{HitRecord, Ray};
 
-#[derive(Clone)]
 pub struct BvhNode {
-    pub left: Box<Geometry>,
-    pub right: Box<Geometry>,
+    pub children: Vec<Box<dyn GeometricObject>>,
     pub aabb: AABB,
-    pub children: usize,
 }
 
 impl GeometricObject for BvhNode {
@@ -21,13 +17,15 @@ impl GeometricObject for BvhNode {
         if !self.aabb.intersects(ray, t_min, t_max) {
             return None;
         }
-        if self.children == 1 {
-            return self.left.intersects(ray, t_min, t_max);
+        let mut tmax = t_max;
+        let mut hit_record = None;
+        for o in self.children.iter() {
+            if let Some(record) = o.intersects(ray, t_min, tmax) {
+                hit_record = Some(record);
+                tmax = record.dist;
+            }
         }
-        self.left.intersects(ray, t_min, t_max).map_or_else(
-            || self.right.intersects(ray, t_min, t_max),
-            |r1| self.right.intersects(ray, t_min, r1.dist).or(Some(r1)),
-        )
+        hit_record
     }
 
     fn scale(&mut self, _l: f64) {}
@@ -62,36 +60,28 @@ impl GeometricObject for BvhNode {
 }
 
 impl BvhNode {
-    pub fn new(objects: &mut Vec<Geometry>, start: usize, end: usize) -> BvhNode {
+    pub fn new(objects: &mut Vec<Box<dyn GeometricObject>>) -> Box<dyn GeometricObject> {
         let axis = thread_rng().gen_range(0, 3);
-        let comparator = move |a: &Geometry, b: &Geometry| {
+        let comparator = move |a: &Box<dyn GeometricObject>, b: &Box<dyn GeometricObject>| {
             let box_a = a.get_bounding_box();
             let box_b = b.get_bounding_box();
             box_a.min[axis].partial_cmp(&box_b.min[axis]).unwrap()
         };
 
-        let span = end - start;
-        if span == 1 {
-            BvhNode {
-                left: Box::new(objects[start].clone()),
-                right: Box::new(objects[start].clone()),
-                aabb: objects[start].get_bounding_box(),
-                children: 1,
-            }
+        if objects.len() == 1 {
+            objects.remove(0)
         } else {
-            objects[start..end].sort_by(comparator);
-            let mid = start + span / 2.0 as usize;
-            let left = BvhNode::new(objects, start, mid);
-            let right = BvhNode::new(objects, mid, end);
-            let (left, right) = (Geometry::from(left), Geometry::from(right));
+            objects.sort_by(comparator);
+            let mid = objects.len() / 2.0 as usize;
+            let mut v2 = objects.split_off(mid);
+            let left = BvhNode::new(objects);
+            let right = BvhNode::new(&mut v2);
             let box_left = left.get_bounding_box();
             let box_right = right.get_bounding_box();
-            BvhNode {
-                left: Box::new(left),
-                right: Box::new(right),
+            Box::new(BvhNode {
+                children: vec![left, right],
                 aabb: AABB::get_surrounding_aabb(&box_left, &box_right),
-                children: 2,
-            }
+            })
         }
     }
 }
